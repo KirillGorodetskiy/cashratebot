@@ -6,9 +6,9 @@ def format_dataframe(df: pd.DataFrame, lang: str) -> str:
 
     for _, row in df.iterrows():
         time_str = row['time'].strftime("%H:%M")
-        commission_str = "Yes" if row['comissions'] else "No"
+        commission_str = "Yes" if row['commissions'] else "No"
         if lang.lower() == 'ru':
-            commission_str = "Да" if row['comissions'] else "Нет"
+            commission_str = "Да" if row['commissions'] else "Нет"
 
         if lang.lower() == 'en':
             row_text = (

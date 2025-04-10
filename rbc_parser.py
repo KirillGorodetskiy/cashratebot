@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def time_str_to_datetime(time_str: list[Tag]) -> list[datetime]:
-    ''' Function accepts list of time_str in format HH:MM in 24 hrs format and
+    ''' Function accepts list of Tags with text in format HH:MM in 24 hrs format and
      returns list of datetime objects in format %Y-%m-%d %H:%M + Moscow TZ.
      The day is always current date because it is a real-time parser,
      timezone always Moscow TZ because we have only 2 cities SPb and Moscow '''
@@ -45,12 +45,12 @@ def _prepare_parsed_data(banks_raw: list[Tag], quotes_raw: list[Tag],
     datetime_objects_list = time_str_to_datetime(times_raw)
     banks = [b.text.strip() for b in banks_raw]
     quotes = [q.text.strip() for q in quotes_raw]
-    # On the wevsite bank offers that have additional comissions 
-    # marked with % sign. So below we create list[bool] Yes/No commissions
+    # On the wevsite bank offers that have additional comissions are
+    # marked with % sign. So, below we create list[bool] Yes/No Flag for commissions
     commissions = [True if '%' in x else False for x in quotes]
-    # Now, when we extracted info about comissinos we remove % sign
+    # Now, when we`ve extracted info about comissinos we remove % sign
     cleaned_quotes = [float(x.replace('%','')) for x in quotes]
-    # create currency list
+    # create currency list for casw when our df will have several currencies
     currency_list = [currency.upper() for x in range(len(quotes))]
     return QuotesData(
         banks_names=banks,
@@ -61,7 +61,7 @@ def _prepare_parsed_data(banks_raw: list[Tag], quotes_raw: list[Tag],
     )
 
 
-def parse_quotes(url: str, div_container: str, currency: str) -> QuotesData:
+def parse_quotes(url: str, target_div_container: str, currency: str) -> QuotesData:
 
     content: requests.Response = requests.get(url)
 
@@ -72,11 +72,11 @@ def parse_quotes(url: str, div_container: str, currency: str) -> QuotesData:
     # content_text = _read_from_file('page.html')
     # data = BeautifulSoup(content_text,'lxml')
 
-    container: Tag = data.find('div', class_=div_container)
+    container: Tag = data.find('div', class_=target_div_container)  # tarrget_div_container contains our target table with quotes
 
-    banks_raw = container.find_all('a', class_='quote__office__one__name')
-    quotes_raw = container.find_all('div', class_='quote__office__cell quote__office__one__rate quote__mode_list_view')
-    times_raw = container.find_all('div', class_='quote__office__cell quote__office__one__time')
+    banks_raw: list[Tag] = container.find_all('a', class_='quote__office__one__name')
+    quotes_raw: list[Tag] = container.find_all('div', class_='quote__office__cell quote__office__one__rate quote__mode_list_view')
+    times_raw: list[Tag] = container.find_all('div', class_='quote__office__cell quote__office__one__time')
 
     prepared_quotes_data_object = _prepare_parsed_data(banks_raw, quotes_raw, times_raw, currency)
 

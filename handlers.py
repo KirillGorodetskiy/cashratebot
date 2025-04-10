@@ -1,7 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from bot_logic import get_quotes, get_statistics
-import pandas as pd
+from bot_logic import get_quotes_df, get_statistics
 from prompts import*
 from db_manager import save_new_user_data_in_db, increment_field_db
 from data_formatter import format_dataframe, format_stats_for_telegram
@@ -14,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-NUM_OF_RETURNED_BANKS=int(os.getenv("NUM_OF_RETURNED_BANKS"))
+NUM_OF_RETURNED_BANKS = int(os.getenv("NUM_OF_RETURNED_BANKS"))
 
 user_selection = {}  # Store user selections temporarily
 
@@ -81,7 +80,7 @@ async def handle_callback(update, context):
             await query.message.reply_text(prompt_choose_city_first[user_lang])
         else:
             await query.message.reply_text(prompt_messages_choiced[user_lang].format(city=cities_prompt[city.upper()][user_lang], currency=currency))
-            preapred_currency_data = format_dataframe(get_quotes(currency, city, NUM_OF_RETURNED_BANKS), user_lang) 
+            preapred_currency_data = format_dataframe(get_quotes_df(currency, city, NUM_OF_RETURNED_BANKS), user_lang) 
             if preapred_currency_data == "":
                 message = prompt_messages_no_data[user_lang]
             else:
@@ -89,8 +88,10 @@ async def handle_callback(update, context):
                 preapred_currency_data  # df is your DataFrame
                 
             await query.message.reply_text(message[:4096])
-
-            increment_field_db(user, 'filled_requests_currencies')
+            try:
+                increment_field_db(user, 'filled_requests_currencies')
+            except Exception as e:
+                logger.error('Couldn`t increment filled_requests_currencies in db for user_id: %s'.format(user_id), e)
 
     elif data.startswith("get_statistics"):
         city = user_selection.get(user_id, {}).get("city", "Unknown")
@@ -99,5 +100,7 @@ async def handle_callback(update, context):
         else:
             message = format_stats_for_telegram(get_statistics(city, currencies_list), user_lang)  
             await query.message.reply_text(message[:4096])
-
-            increment_field_db(user, 'filled_requests_stats')
+            try:
+                increment_field_db(user, 'filled_requests_stats')
+            except Exception as e:
+                logger.error('Couldn`t increment filled_requests_stats in db for user_id: %s'.format(user_id), e) 
