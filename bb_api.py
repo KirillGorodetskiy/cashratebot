@@ -11,10 +11,8 @@ TRUSTED_MIN_SUCCESS = float(os.getenv("TRUSTED_MIN_SUCCESS", "95"))
 
 def fetch_bybit_p2p_stats(side="buy"):
     url = "https://api2.bybit.com/fiat/otc/item/online"
-    
-    # Side: 1 = BUY (you buy USDT), 0 = SELL (you sell USDT)
     side_code = "1" if side == "buy" else "0"
-    
+
     payload = {
         "tokenId": "USDT",
         "currencyId": "RUB",
@@ -42,6 +40,7 @@ def fetch_bybit_p2p_stats(side="buy"):
         df['successRate'] = (df['finishNum'] / df['orderNum']) * 100
         df['successRate'] = df['successRate'].fillna(0)
 
+        # General stats
         stats = {
             "price_min": df['price'].min(),
             "price_max": df['price'].max(),
@@ -59,6 +58,7 @@ def fetch_bybit_p2p_stats(side="buy"):
             }
         }
 
+        # Trusted sellers
         trusted = df[(df['orderNum'] >= TRUSTED_MIN_ORDERS) & (df['successRate'] >= TRUSTED_MIN_SUCCESS)]
 
         target_amounts = [10000, 30000, 60000, 100000]
@@ -76,6 +76,22 @@ def fetch_bybit_p2p_stats(side="buy"):
             "min_avg": trusted['minAmount'].mean(),
             "max_avg": trusted['maxAmount'].mean(),
             "avg_prices_by_amount": avg_prices_by_amount
+        }
+
+        # Top 15 by price with min 400+ orders and 90% success
+        # Filter first, then take best 15 prices
+        filtered_top = df[(df['finishNum'] > 400) & (df['successRate'] >= 90)]
+        top15_filtered = filtered_top.sort_values(by='price').head(50)
+
+
+        stats["top15_filtered"] = {
+            "count": len(top15_filtered),
+            "price_min": top15_filtered['price'].min(),
+            "price_max": top15_filtered['price'].max(),
+            "min_min_amount": top15_filtered['minAmount'].min(),
+            "max_max_amount": top15_filtered['maxAmount'].max(),
+            "avg_min_amount": top15_filtered['minAmount'].mean(),
+            "avg_max_amount": top15_filtered['maxAmount'].mean(),
         }
 
         return stats
@@ -98,8 +114,24 @@ def build_telegram_message(stats: dict, lang: str = "en") -> str:
         for amount in stats['trusted']['avg_prices_by_amount']
     ])
 
+    top15 = stats["top15_filtered"]
+    top15_block = f"""
+📊 Топ 50 по цене (400+ сделок, 90%+ успеха):
+• Кол-во: {top15["count"]}
+• Цена: {top15["price_min"]:.2f} – {top15["price_max"]:.2f} RUB
+• Суммы: мин {top15["min_min_amount"]:,.0f} | макс {top15["max_max_amount"]:,.0f} RUB
+• Среднее: мин {top15["avg_min_amount"]:,.0f} | макс {top15["avg_max_amount"]:,.0f} RUB
+""" if lang == "ru" else f"""
+📊 Top 50 by Best Price (400+ trades, 90%+ success):
+• Count: {top15["count"]}
+• Price: {top15["price_min"]:.2f} – {top15["price_max"]:.2f} RUB
+• Amounts: min {top15["min_min_amount"]:,.0f} | max {top15["max_max_amount"]:,.0f} RUB
+• Avg: min {top15["avg_min_amount"]:,.0f} | max {top15["avg_max_amount"]:,.0f} RUB
+"""
+
     if lang == "ru":
         return f"""
+{top15_block}
 💸 Сводка (USDT {side_label_ru}): 
 • Цена: {stats["price_min"]:.2f} – {stats["price_max"]:.2f} RUB
 • Медиана: {stats["price_median"]:.2f} | Средняя: {stats["price_mean"]:.2f}
@@ -113,7 +145,7 @@ def build_telegram_message(stats: dict, lang: str = "en") -> str:
 • Продавцов с 100+ сделок: {stats["good_sellers"]["count_100_trades"]}
 • Продавцов с 95%+ успеха: {stats["good_sellers"]["count_95_percent_success"]}
 
-🏅 Статичтика надежных продавцов ({TRUSTED_MIN_ORDERS}+ сделок, {TRUSTED_MIN_SUCCESS}%+ успеха):
+🏅 Статистика надежных продавцов ({TRUSTED_MIN_ORDERS}+ сделок, {TRUSTED_MIN_SUCCESS}%+ успеха):
 • Кол-во: {stats["trusted"]["count"]}
 • Ср. успех: {stats["trusted"]["success_mean"]:.1f}%
 • Ср. цена: {stats["trusted"]["price_mean"]:.2f} | Медиана: {stats["trusted"]["price_median"]:.2f}
@@ -121,9 +153,9 @@ def build_telegram_message(stats: dict, lang: str = "en") -> str:
 • Средняя цена по суммам:
 {amounts_section}
 """.strip()
-    
-    # English version
+
     return f"""
+{top15_block}
 💸 USDT {side_label} Stats:
 • Price: {stats["price_min"]:.2f} – {stats["price_max"]:.2f} RUB
 • Median: {stats["price_median"]:.2f} | Mean: {stats["price_mean"]:.2f}
@@ -149,8 +181,6 @@ def build_telegram_message(stats: dict, lang: str = "en") -> str:
 # Example usage
 if __name__ == "__main__":
     stats = fetch_bybit_p2p_stats(side="buy")  # or "sell"
-    message_en = build_telegram_message(stats, lang="en")
-    message_ru = build_telegram_message(stats, lang="ru")
-    print(message_en)
+    print(build_telegram_message(stats, lang="ru"))
     print("\n" + "-"*80 + "\n")
-    print(message_ru)
+    print(build_telegram_message(stats, lang="en"))
