@@ -1,4 +1,3 @@
-from typing import Literal
 import pandas as pd
 import copy
 import redis_client
@@ -8,19 +7,20 @@ import os
 from dotenv import load_dotenv
 from io import StringIO
 import logging
-from models import QuotesData, CurrencyCode, CityCode
+from models import CurrencyStatistics, QuotesData, CurrencyCode, CityCode
+from typing import Union
 
 
 logger = logging.getLogger(__name__)
-base_url = 'https://cash.rbc.ru/cash/?currency={currency_code}&city={city_code}&deal={operation_code}&amount=1'
 
+base_url = 'https://cash.rbc.ru/cash/?currency={currency_code}&city={city_code}&deal={operation_code}&amount=1'
 div_container = "quote__office__content js-office-content"
 
 # Load .env variables
 load_dotenv()
 
-TTL_QUOTES_IN_REDIS = int(os.getenv("TTL_QUOTES_IN_REDIS"))
-TTL_STATS_IN_REDIS = int(os.getenv("TTL_STATS_IN_REDIS"))
+TTL_QUOTES_IN_REDIS = int(os.getenv("TTL_QUOTES_IN_REDIS", 600))
+TTL_STATS_IN_REDIS = int(os.getenv("TTL_STATS_IN_REDIS", 600))
 
 
 def _get_data_frame(data: QuotesData) -> pd.DataFrame:
@@ -45,6 +45,7 @@ def _merge_df(df_buy: pd.DataFrame, df_sell: pd.DataFrame) -> pd.DataFrame:
     merged["spread"] = round(merged["buy_quote"] - merged["sell_quote"], 2) 
     merged["spread_percent"] = round((merged["spread"] / merged["sell_quote"]) * 100, 2) 
     merged["avg_price"] = round((merged["buy_quote"] + merged["sell_quote"]) / 2, 2) 
+
     # Sort merged df
     merged = merged.sort_values(by='buy_quote')
 
@@ -66,7 +67,7 @@ def get_quotes_df_from_redis_cache(redis_json_name: str) -> pd.DataFrame | None:
         return None
 
 
-def get_statistics_df_from_redis_cache(redis_json_name):
+def get_statistics_df_from_redis_cache(redis_json_name: str) -> pd.DataFrame | None:
     data = redis_client.REDIS_CLIENT.get(redis_json_name)
     if data is not None:
         prepared_response = json.loads(data)
@@ -75,28 +76,36 @@ def get_statistics_df_from_redis_cache(redis_json_name):
         return None
 
 
-def set_quotes_to_redis_cache(redis_json_name, df_merged):
+def set_quotes_to_redis_cache(redis_json_name: str, df_merged: pd.DataFrame) -> None:
     try:
-        redis_client.REDIS_CLIENT.set(redis_json_name, df_merged.to_json(orient='records'), ex=TTL_QUOTES_IN_REDIS)
+        redis_client.REDIS_CLIENT.set(redis_json_name,
+                                      df_merged.to_json(orient='records'), 
+                                      ex=TTL_QUOTES_IN_REDIS
+                                      )
     except Exception as e:
         logger.error("Data where not save in Redis: %s", e)
-        return None
 
 
 def set_statistics_to_redis_cache(redis_json_name, df_merged):
     try:
-        redis_client.REDIS_CLIENT.setex(redis_json_name, TTL_STATS_IN_REDIS, json.dumps(df_merged))
+        redis_client.REDIS_CLIENT.setex(redis_json_name,
+                                        TTL_STATS_IN_REDIS,
+                                        json.dumps(df_merged)
+                                        )
     except Exception as e:
-        logger.error("Data where not save in Redis: %s", e)
-        return None
+        logger.error("Data where not saved in Redis: %s", e)
 
 
-def get_currency_code(currency_name: str) -> int:
-    return CurrencyCode[currency_name.upper()].value
+def get_currency_code(currency: Union[str, CurrencyCode]) -> int:
+    if isinstance(currency, str):
+        return CurrencyCode[currency.upper()].value
+    return currency.value
 
 
-def get_city_code(city_name: str) -> int:
-    return CityCode[city_name.upper()].value
+def get_city_code(city: Union[str, CityCode]) -> int:
+    if isinstance(city, str):
+        return CityCode[city.upper()].value
+    return city.value
 
 
 def get_quotes_df(currency: str,
@@ -147,69 +156,70 @@ def get_quotes_df(currency: str,
     return df_merged if return_all_banks else df_merged.head(num_of_returned_banks)
 
 
-def _get_several_currencies_in_city(city: str, currencies_list: list[str]) -> pd.DataFrame:
-
+def _get_several_currencies_in_city(city: str, 
+                                    currencies_list: list[str]
+                                    ) -> pd.DataFrame:
     merged_df = pd.DataFrame()
-
     for currency in currencies_list:
         df = get_quotes_df(currency, city, return_all_banks=True)
-
         if df is not None and not df.empty:  # ✅ if the result is valid
             merged_df = pd.concat([merged_df, df], ignore_index=True)
-
     return merged_df
 
 
-def _calculate_statistics(df):
+def _calculate_statistics(df: pd.DataFrame) -> dict[str, CurrencyStatistics]:
 
     available_currencies = set(df['currency'])
 
-    statistics_template = {
+    statistics_template: CurrencyStatistics = {
         'num_of_available_buys': 0,
         'num_of_available_sells': 0,
-        'avg_buys': 0,
-        'avg_sells': 0,
-        'avg_price': 0,
-        'min_spread_rub': 0,
-        'max_spread_rub': 0,
-        'avg_spread_rub': 0,
+        'avg_buys': None,
+        'avg_sells': None,
+        'avg_price': None,
+        'min_spread_rub': 0.0,
+        'max_spread_rub': 0.0,
+        'avg_spread_rub': None,
     }
 
-    prepared_response = {}
+    stat: dict[str, CurrencyStatistics] = {}
 
     for currency in available_currencies:
-        prepared_response[currency] = copy.deepcopy(statistics_template)
+        stat[currency] = copy.deepcopy(statistics_template)
+        r = stat[currency]
 
         df_cur = df[df["currency"] == currency]
 
-        prepared_response[currency]['num_of_available_buys'] = int(df_cur['buy_quote'].notna().sum())
-        prepared_response[currency]['num_of_available_sells'] = int(df_cur['sell_quote'].notna().sum())
+        r['num_of_available_buys'] = int(df_cur['buy_quote'].notna().sum())
+        r['num_of_available_sells'] = int(df_cur['sell_quote'].notna().sum())
 
         avg_buys = df_cur['buy_quote'].mean()
-        prepared_response[currency]['avg_buys'] = round(avg_buys, 2) if pd.notna(avg_buys) else None
+        r['avg_buys'] = round(avg_buys, 2) if pd.notna(avg_buys) else None
 
         avg_sells = df_cur['sell_quote'].mean()
-        prepared_response[currency]['avg_sells'] = round(avg_sells, 2) if pd.notna(avg_sells) else None
+        r['avg_sells'] = round(avg_sells, 2) if pd.notna(avg_sells) else None
 
         avg_price = df_cur['avg_price'].mean()
-        prepared_response[currency]['avg_price'] = round(avg_price, 2) if pd.notna(avg_price) else None
+        r['avg_price'] = round(avg_price, 2) if pd.notna(avg_price) else None
 
-        prepared_response[currency]['min_spread_rub'] = float(round(df_cur['spread'].min(), 2))
-        prepared_response[currency]['max_spread_rub'] = float(round(df_cur['spread'].max(), 2))
+        r['min_spread_rub'] = float(round(df_cur['spread'].min(), 2))
+        r['max_spread_rub'] = float(round(df_cur['spread'].max(), 2))
         avg_spread = df_cur['spread'].mean()
-        prepared_response[currency]['avg_spread_rub'] = round(avg_spread, 2) if pd.notna(avg_spread) else None
+        r['avg_spread_rub'] = round(avg_spread, 2) if pd.notna(avg_spread) else None
 
-    return prepared_response
+    return stat
 
 
-def get_statistics(city: str, currencies_list: list[str]):
+def get_statistics(city: str,
+                   currencies_list: list[str]
+                   ) -> dict[str, CurrencyStatistics]:
     redis_json_name = f"statistics:{city.lower()}"
     # First we check redis storage. If empty we parsing from website.
     if redis_client.REDIS_AVAILABLE is not None:
         try:
-            prepared_response = get_statistics_df_from_redis_cache(redis_json_name)
-            if prepared_response is not None:
-                return json.loads(prepared_response)
+            response = get_statistics_df_from_redis_cache(redis_json_name)
+            if response is not None:
+                return json.loads(response)
         except Exception as e:
             logger.error('Couldn`t get statistics from Redis: %s', e)
 
@@ -220,12 +230,12 @@ def get_statistics(city: str, currencies_list: list[str]):
         return {}
 
     # calculating statistics and pack result in dict
-    prepared_response = _calculate_statistics(df)
+    response = _calculate_statistics(df)
 
     if redis_client.REDIS_CLIENT is not None:
         # save parsed data to redis for TTL minutes set in .env
         set_statistics_to_redis_cache(redis_json_name,
-                                      json.dumps(prepared_response)
+                                      json.dumps(response)
                                       )
 
-    return prepared_response
+    return response

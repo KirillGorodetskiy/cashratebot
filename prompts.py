@@ -27,8 +27,12 @@ prompt_messages_show_data= { 'en' : "Last {currency} quotes in {city}: \n",\
 prompt_messages_no_data= { 'en' : "In current time there are no available quotes in yout city.",\
                            'ru' : "В насятощще время в Вашем городе нет доступных предложений."}
 
-prompt_get_statistics = { 'en' : "Stats for all currencies",\
-                          'ru' : "Cтатистика по всем валютам городе."}
+prompt_get_statistics = { 'en' : "Cash Stats for all currencies",\
+                          'ru' : "Cтатистика по наличным - все валюты в городе."}
+
+
+prompt_messages_crypto_or_cash = { 'en' : "Choose cash or crypto",\
+                          'ru' : "Выберите статистику по по чему вы хотите получить."}
 
 cities_prompt = {
     'MOSCOW': {'en': 'Moscow', 'ru' : 'Москва'},

@@ -22,7 +22,6 @@ def time_str_to_datetime(time_str: list[Tag]) -> list[datetime]:
     t = [x.text.strip() for x in time_str]
     # Converting str into datetime objects
     t_datetime = [datetime.strptime(f'{today} {x}', '%Y-%m-%d %H:%M') for x in t]
-
     # Adding timezone
     t_datetime = [moscow_tz.localize(x) for x in t_datetime]
 
@@ -41,12 +40,12 @@ def _read_from_file(file_name: str) -> str:
 
 
 def _prepare_parsed_data(banks_raw: list[Tag], quotes_raw: list[Tag],
-                         times_raw: list[Tag], currency: str):
+                         times_raw: list[Tag], currency: str) -> QuotesData:
     datetime_objects_list = time_str_to_datetime(times_raw)
     banks = [b.text.strip() for b in banks_raw]
     quotes = [q.text.strip() for q in quotes_raw]
-    # On the wevsite bank offers that have additional comissions are
-    # marked with % sign. So, below we create list[bool] Yes/No Flag for commissions
+    # On the wevsite bank offers that have additional comissions are marked
+    # with % sign. So, below we create list[bool] Yes/No Flag for commissions
     commissions = [True if '%' in x else False for x in quotes]
     # Now, when we`ve extracted info about comissinos we remove % sign
     cleaned_quotes = [float(x.replace('%','')) for x in quotes]
@@ -61,7 +60,8 @@ def _prepare_parsed_data(banks_raw: list[Tag], quotes_raw: list[Tag],
     )
 
 
-def parse_quotes(url: str, target_div_container: str, currency: str) -> QuotesData:
+def parse_quotes(url: str, target_div_container: str,
+                 currency: str) -> QuotesData:
 
     content: requests.Response = requests.get(url)
 

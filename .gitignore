@@ -9,9 +9,12 @@ wheels/
 # Virtual environments
 .venv
 
+# Env file
 .env
 
 .mypy_cache
 
+# Log files contain secret info like Telegram API Token
 *.log
 
+sandbox.py

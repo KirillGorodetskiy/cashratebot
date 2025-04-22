@@ -5,7 +5,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Is Redis is not active it will take some time to get response and error
-# we use REDIS_AVAILABLE 
+# we use REDIS_AVAILABLE
 REDIS_AVAILABLE: bool = True
 
 # Create and export a shared Redis client
@@ -17,7 +17,7 @@ REDIS_CLIENT = redis.Redis(
         )
 
 
-def redis_client_init():
+def redis_client_init() -> None:
     global REDIS_AVAILABLE
     try:
         REDIS_CLIENT.ping()

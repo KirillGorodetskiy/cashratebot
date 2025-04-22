@@ -1,11 +1,16 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from bot_logic import get_quotes_df, get_statistics
-from prompts import*
+from prompts import prompt_get_statistics, prompt_choose_city_first, \
+                    prompt_messages_choiced, prompt_messages_cities, \
+                    prompt_messages_currencies, prompt_messages_greeting, \
+                    prompt_messages_no_data, prompt_messages_show_data, \
+                    cities_prompt, prompt_messages_crypto_or_cash
 from db_manager import save_new_user_data_in_db, increment_field_db
 from data_formatter import format_dataframe, format_stats_for_telegram
 import os
 from dotenv import load_dotenv
+from bb_api import fetch_bybit_p2p_stats, build_telegram_message
 
 import logging
 
@@ -13,22 +18,35 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-NUM_OF_RETURNED_BANKS = int(os.getenv("NUM_OF_RETURNED_BANKS"))
+NUM_OF_RETURNED_BANKS = int(os.getenv("NUM_OF_RETURNED_BANKS", 5))
 
 user_selection = {}  # Store user selections temporarily
 
 currencies_list = ['usd', 'eur', 'gbp', 'aed']
 
-keyboards_cities = { 'en' : [
+keyboards_cash_crypto = {
+    'en': [
+        [InlineKeyboardButton("💵 Cash", callback_data="cash_or_crypto:cash")],
+        [InlineKeyboardButton("💰 USDT", callback_data="cash_or_crypto:usdt")]
+    ],
+    'ru': [
+        [InlineKeyboardButton("💵 Наличные", callback_data="cash_or_crypto:cash")],
+        [InlineKeyboardButton("💰 USDT", callback_data="cash_or_crypto:usdt")]
+    ]
+}
+
+
+keyboards_cities = {'en': [
         [InlineKeyboardButton("🏙️ Moscow", callback_data="city:Moscow")],
         [InlineKeyboardButton("🏰 St. Petersburg", callback_data="city:SPB")]
     ],
-    'ru' : [
+    'ru': [
         [InlineKeyboardButton("🏙️ Москва", callback_data="city:Moscow")],
         [InlineKeyboardButton("🏰 Санкт-Петербург", callback_data="city:SPB")]
-    ]    
+    ]
 }
-    
+
+
 # /start command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -36,13 +54,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     save_new_user_data_in_db(user)
 
-    user_id = user.id
-
     user_lang = update.effective_user.language_code
-    user_selection[user_id] = {"user_lang": user_lang}
+    user_selection[user.id] = {"user_lang": user_lang}
 
-    keyboard = keyboards_cities[user_lang]
-    await update.message.reply_text(prompt_messages_greeting[user_lang] + prompt_messages_cities[user_lang], reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    keyboard = keyboards_cash_crypto[user_lang]
+    await update.message.reply_text(prompt_messages_greeting[user_lang] +
+                                    prompt_messages_crypto_or_cash[user_lang],
+                                    reply_markup=InlineKeyboardMarkup(keyboard)
+                                    )
+    
 
 # Step 2: Ask for currency after city is chosen
 async def handle_callback(update, context):
@@ -53,9 +74,25 @@ async def handle_callback(update, context):
     await query.answer()
     user_id = query.from_user.id
     user_lang = query.from_user.language_code
-    
+
     data = query.data
-    if data.startswith("city:"):
+    if data.startswith("cash_or_crypto:"):
+        cash_or_crypto = data.split(":")[1]
+        user_selection[user_id] = {"cash_or_crypto": cash_or_crypto}
+
+        if cash_or_crypto == 'cash':
+            keyboard = keyboards_cities[user_lang]
+            await query.message.reply_text(prompt_messages_cities[user_lang],
+                                        reply_markup=InlineKeyboardMarkup(keyboard)
+                                        )
+            
+        elif cash_or_crypto == 'usdt':
+            message =  build_telegram_message(fetch_bybit_p2p_stats(side='buy'), lang=user_lang)
+                
+            await query.message.reply_text(message[:4096])
+
+
+    elif (data.startswith("city:")):
         city = data.split(":")[1]
         user_selection[user_id] = {"city": city}
 
@@ -66,7 +103,7 @@ async def handle_callback(update, context):
              InlineKeyboardButton("💴 AED", callback_data="currency:AED")
             ],
             [
-            InlineKeyboardButton(prompt_get_statistics[user_lang], callback_data="get_statistics")
+             InlineKeyboardButton(prompt_get_statistics[user_lang], callback_data="get_statistics")
             ]
         ]
         await query.message.reply_text(prompt_messages_currencies[user_lang]\
@@ -91,16 +128,17 @@ async def handle_callback(update, context):
             try:
                 increment_field_db(user, 'filled_requests_currencies')
             except Exception as e:
-                logger.error('Couldn`t increment filled_requests_currencies in db for user_id: %s'.format(user_id), e)
+                logger.error('Couldn`t increment filled_requests_currencies in db for user_id: %s', e)
 
     elif data.startswith("get_statistics"):
         city = user_selection.get(user_id, {}).get("city", "Unknown")
         if (city == 'Unknown'):
             await query.message.reply_text(prompt_choose_city_first[user_lang])
         else:
-            message = format_stats_for_telegram(get_statistics(city, currencies_list), user_lang)  
+            message = format_stats_for_telegram(get_statistics(city, currencies_list), user_lang)
             await query.message.reply_text(message[:4096])
             try:
                 increment_field_db(user, 'filled_requests_stats')
             except Exception as e:
-                logger.error('Couldn`t increment filled_requests_stats in db for user_id: %s'.format(user_id), e) 
+                logger.error('Couldn`t increment filled_requests_stats\
+                              in db for user_id: %s', e) 

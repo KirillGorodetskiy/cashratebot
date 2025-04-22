@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-
 import psycopg2
 from psycopg2 import sql
 from dotenv import load_dotenv
@@ -13,7 +12,7 @@ load_dotenv(encoding='utf-8')
 
 
 # Database connection setup
-def get_db_connection():
+def get_db_connection() -> None:
     try:
         conn = psycopg2.connect(
             dbname=os.getenv('DB_NAME'),
@@ -26,9 +25,9 @@ def get_db_connection():
     except Exception as e:
         logger.error('Couldn`t connect to db %s', e)
         return None
-    
 
-def db_init():
+
+def db_init() -> None:
     """Initialize database (create tables if not exist)"""
     conn = get_db_connection()
     if conn is not None:
@@ -58,7 +57,7 @@ def db_init():
         logger.error("Couldn`t init DB because conn is not available")
 
 
-def save_new_user_data_in_db(user, conn=None):
+def save_new_user_data_in_db(user, conn=None) -> None:
     """Save new user data in the database"""
     conn = conn or get_db_connection()  # Use passed conn or create a new one
     if conn is not None:
@@ -89,7 +88,7 @@ def save_new_user_data_in_db(user, conn=None):
         logger.error('DB is not available to save user.id {} in db'.format(user.id))
 
 
-def increment_field_db(user, field_name: str, conn=None):
+def increment_field_db(user, field_name: str, conn=None) -> None:
     """Increment a field (e.g., request_count) in the users table"""
     conn = conn or get_db_connection()
     if conn is not None:

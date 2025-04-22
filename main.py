@@ -1,7 +1,7 @@
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 import os
 from dotenv import load_dotenv
-from prompts import*
+from prompts import *
 from handlers import handle_callback, start
 from db_manager import db_init
 import redis_client
@@ -9,7 +9,7 @@ import logging
 
 # Basic logger configuration
 logging.basicConfig(
-    level=logging.INFO,  
+    level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(name)s: - %(message)s',
     filename='app.log',  # log to file
     filemode='a'         # Append to file (or 'w' to overwrite)
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Load .env variables
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("TEST_BOT_TOKEN")
 
 
 # Build and run the bot
