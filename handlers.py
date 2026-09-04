@@ -27,8 +27,7 @@ currencies_list = ['usd', 'eur', 'gbp', 'aed']
 keyboards_cash_crypto = {
     'en': [
         [InlineKeyboardButton("💵 Cash", callback_data="cash_or_crypto:cash")],
-        [InlineKeyboardButton("💰 BUY USDT", callback_data="cash_or_crypto:buy_usdt")],
-        [InlineKeyboardButton("💰 SELL USDT", callback_data="cash_or_crypto:sell_usdt")]
+        [InlineKeyboardButton("💰 USDT", callback_data="cash_or_crypto:usdt")]
     ],
     'ru': [
         [InlineKeyboardButton("💵 Наличные", callback_data="cash_or_crypto:cash")],
@@ -55,8 +54,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     save_new_user_data_in_db(user)
 
-    user_lang = update.effective_user.language_code
-    user_selection[user.id] = {"user_lang": user_lang}
+    user_lang = update.effective_user.language_code or "en"
+    user_lang = "ru" if user_lang.startswith("ru") else "en"
     user_selection[user.id] = {"user_lang": user_lang}
 
     
