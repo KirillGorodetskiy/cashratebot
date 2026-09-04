@@ -27,7 +27,8 @@ currencies_list = ['usd', 'eur', 'gbp', 'aed']
 keyboards_cash_crypto = {
     'en': [
         [InlineKeyboardButton("💵 Cash", callback_data="cash_or_crypto:cash")],
-        [InlineKeyboardButton("💰 USDT", callback_data="cash_or_crypto:usdt")]
+        [InlineKeyboardButton("💰 BUY USDT", callback_data="cash_or_crypto:buy_usdt")],
+        [InlineKeyboardButton("💰 SELL USDT", callback_data="cash_or_crypto:sell_usdt")]
     ],
     'ru': [
         [InlineKeyboardButton("💵 Наличные", callback_data="cash_or_crypto:cash")],

@@ -18,7 +18,10 @@ dependencies = [
     "redis>=5.2.1",
     "requests>=2.32.3",
     "requests-toolbelt>=1.0.0",
+    "selenium>=4.31.0",
+    "setuptools>=79.0.0",
     "stubs>=1.0.0",
+    "undetected-chromedriver>=3.5.5",
 ]
 
 [dependency-groups]
