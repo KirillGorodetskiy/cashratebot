@@ -10,7 +10,7 @@ from db_manager import save_new_user_data_in_db, increment_field_db
 from data_formatter import format_dataframe, format_stats_for_telegram
 import os
 from dotenv import load_dotenv
-from bb_api import fetch_bybit_p2p_stats, build_telegram_message
+from bb_api import fetch_usdt_rub_rates, build_message
 
 import logging
 
@@ -57,6 +57,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user_lang = update.effective_user.language_code
     user_selection[user.id] = {"user_lang": user_lang}
+    user_selection[user.id] = {"user_lang": user_lang}
 
     
     keyboard = keyboards_cash_crypto[user_lang]
@@ -74,7 +75,8 @@ async def handle_callback(update, context):
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
-    user_lang = query.from_user.language_code
+    user_lang = query.from_user.language_code or "en"
+    user_lang = "ru" if user_lang.startswith("ru") else "en"
 
     data = query.data
     if data.startswith("cash_or_crypto:"):
@@ -86,10 +88,10 @@ async def handle_callback(update, context):
             await query.message.reply_text(prompt_messages_cities[user_lang],
                                         reply_markup=InlineKeyboardMarkup(keyboard)
                                         )
-            
+
         elif cash_or_crypto == 'usdt':
-            message =  build_telegram_message(fetch_bybit_p2p_stats(side='buy'), lang=user_lang)
-                
+            result = fetch_usdt_rub_rates()
+            message = build_message(result, lang=user_lang)
             await query.message.reply_text(message[:4096])
 
 
