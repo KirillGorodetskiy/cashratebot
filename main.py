@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Load .env variables
 load_dotenv()
-TOKEN = os.getenv("TEST_BOT_TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")
 
 
 # Build and run the bot
