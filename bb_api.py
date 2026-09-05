@@ -1,3 +1,4 @@
+import html
 import re
 import statistics
 import requests
@@ -118,42 +119,35 @@ def fetch_usdt_rub_rates():
         "total": len(sources),
     }
 
-def build_message(result, lang="ru"):
+def build_message(result, lang='ru'):
     if not result:
         return (
-            "❌ Недостаточно данных для расчёта курса."
-            if lang == "ru"
-            else
-            "❌ Not enough data to calculate the exchange rate."
+            '❌ Недостаточно данных для расчёта курса.'
+            if lang == 'ru'
+            else '❌ Not enough data to calculate the exchange rate.'
         )
 
-    if lang == "ru":
-        lines = ["💱 USDT / RUB"]
+    lines = ['<b>USDT / RUB</b>']
+    for name, rate in result['rates'].items():
+        source = html.escape(str(name), quote=True)
+        lines.append(f'• <b>{source}</b>: {rate:.2f} RUB')
 
-        for name, rate in result["rates"].items():
-            lines.append(f"• {name}: {rate:.2f} RUB")
-
+    if lang == 'ru':
         lines += [
-            f"📊 Средний: {result['average']:.2f} RUB",
+            f"<b>Средний:</b> {result['average']:.2f} RUB",
             f"Медиана: {result['median']:.2f} RUB",
             f"Диапазон: {result['min']:.2f}–{result['max']:.2f} RUB",
             f"Источники: {result['count']}/{result['total']}",
         ]
-
     else:
-        lines = ["💱 USDT / RUB"]
-
-        for name, rate in result["rates"].items():
-            lines.append(f"• {name}: {rate:.2f} RUB")
-
         lines += [
-            f"📊 Average: {result['average']:.2f} RUB",
+            f"<b>Average:</b> {result['average']:.2f} RUB",
             f"Median: {result['median']:.2f} RUB",
             f"Range: {result['min']:.2f}–{result['max']:.2f} RUB",
             f"Sources: {result['count']}/{result['total']}",
         ]
 
-    return "\n".join(lines)
+    return '\n'.join(lines)
 
 if __name__ == "__main__":
     result = fetch_usdt_rub_rates()

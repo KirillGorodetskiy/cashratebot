@@ -1,40 +1,85 @@
-prompt_messages_greeting = { 'en' : "Hello! This bot will show you up-to-date information on cash currency buy/sell rates in the city you choose. \n" \
-                            "The data is taken from the website cash.rbc.ru. Please note that the offers displayed by banks are not always final — \
-                            before visiting any bank, be sure to confirm all necessary information directly with the bank.\n", 
+prompt_messages_greeting = {
+    'en': (
+        '<b>Cash and USDT rates</b>\n'
+        '<blockquote>Data from cash.rbc.ru. Bank offers are not '
+        'always final — confirm with the bank before visiting.'
+        '</blockquote>\n'
+        'Choose cash or USDT:'
+    ),
+    'ru': (
+        '<b>Курсы наличных и USDT</b>\n'
+        '<blockquote>Данные с cash.rbc.ru. Предложения банков не '
+        'всегда окончательные — уточните условия в банке перед '
+        'визитом.</blockquote>\n'
+        'Выберите наличные или USDT:'
+    ),
+}
 
-                            'ru' : "Здравствуйте! Настоящий Бот покажет вам актуальную информацию по ценам на покупку/продажу наличной валюты в выбранном Вами городе. \n" \
-                            "Данные взяты с сайта cash.rbc.ru. Просим обратить внимание, что выставляемые банками предложения не всегда являются конечными, \
-                            перед поездкой в любой банк обязательно уточните всю неоходимую информацию напряму у выбранного банка. \n"}
+prompt_messages_cities = {
+    'en': '<b>Choose your city</b>',
+    'ru': '<b>Выберите город</b>',
+}
 
-prompt_messages_cities = { 'en' : "Choose your city:",\
-                           'ru' : "Выберите город:"}
+prompt_messages_currencies = {
+    'en': (
+        '<b>{city}</b>\n'
+        'Choose a currency for the top-{num_of_banks} bank quotes, '
+        'or open city stats:'
+    ),
+    'ru': (
+        '<b>{city}</b>\n'
+        'Выберите валюту для топ-{num_of_banks} предложений банков '
+        'или откройте статистику по городу:'
+    ),
+}
 
-prompt_messages_currencies = { 'en' : "✅ City selected: {city}\nNow choose currency to get top-{num_of_banks} banks quotes or choose stats "\
-                               "to get general stats for available currencies:",#
+prompt_choose_city_first = {
+    'en': (
+        'A city has not been chosen. Use Back or /start.'
+    ),
+    'ru': (
+        'Город не выбран. Нажмите «Назад» или /start.'
+    ),
+}
 
-                               'ru' : "✅ Выбранный город: {city}\nТеперь выберите валюту, чтобы получить топ-{num_of_banks} предложений банков или выберите статистику, \
-                                чтобы увидеть общую статистику по доступным валютам:"}
+prompt_messages_show_data = {
+    'en': '<b>{currency}</b> in <b>{city}</b>\n\n',
+    'ru': '<b>{currency}</b> в городе <b>{city}</b>\n\n',
+}
 
-prompt_messages_choiced = { 'en' : "📍 You selected:\nCity: {city}\nCurrency: {currency}",\
-                            'ru' : "📍 Вы выбрали:\nГород: {city}\nВалюта: {currency}" }
+prompt_messages_no_data = {
+    'en': 'There are no quotes available in this city right now.',
+    'ru': 'Сейчас в этом городе нет доступных предложений.',
+}
 
-prompt_choose_city_first= { 'en' : "A city hasn`t been chosen. Please choose the city fitst or start from the begining using /start command.", \
-                           'ru' : "Город не был выбран. Выберите сначала город или начните заново с команды /start"}
+prompt_messages_error = {
+    'en': 'Could not load rates. Please try again.',
+    'ru': 'Не удалось загрузить курсы. Попробуйте ещё раз.',
+}
 
-prompt_messages_show_data= { 'en' : "Last {currency} quotes in {city}: \n",\
-                             'ru' : "Последние курсы {currency} в городе {city}: \n"}
+prompt_menu_attached = {
+    'en': 'Quick menu is pinned below.',
+    'ru': 'Быстрое меню закреплено внизу.',
+}
 
-prompt_messages_no_data= { 'en' : "In current time there are no available quotes in yout city.",\
-                           'ru' : "В насятощще время в Вашем городе нет доступных предложений."}
-
-prompt_get_statistics = { 'en' : "Cash Stats for all currencies",\
-                          'ru' : "Cтатистика по наличным - все валюты в городе."}
-
-
-prompt_messages_crypto_or_cash = { 'en' : "Choose cash or crypto",\
-                          'ru' : "Выберите статистику по по чему вы хотите получить."}
+prompt_help = {
+    'en': (
+        '<b>How to use</b>\n'
+        '• <b>Cash</b> — choose a city, then a currency or city stats\n'
+        '• <b>USDT</b> — live USDT/RUB from several sources\n'
+        'Use Back, Home, Refresh, or the pinned menu.'
+    ),
+    'ru': (
+        '<b>Как пользоваться</b>\n'
+        '• <b>Наличные</b> — выберите город, затем валюту или '
+        'статистику\n'
+        '• <b>USDT</b> — актуальный курс USDT/RUB из нескольких '
+        'источников\n'
+        'Используйте Назад, Меню, Обновить или закреплённое меню.'
+    ),
+}
 
 cities_prompt = {
-    'MOSCOW': {'en': 'Moscow', 'ru' : 'Москва'},
-    'SPB': {'en': 'SPB', 'ru' : 'Санкт-Петербург'},
-    }
+    'MOSCOW': {'en': 'Moscow', 'ru': 'Москва'},
+    'SPB': {'en': 'St. Petersburg', 'ru': 'Санкт-Петербург'},
+}

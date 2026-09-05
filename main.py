@@ -1,42 +1,78 @@
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
-import os
-from dotenv import load_dotenv
-from prompts import *
-from handlers import handle_callback, start
-from db_manager import db_init
-import redis_client
 import logging
+import os
 
-# Basic logger configuration
+from dotenv import load_dotenv
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    MessageHandler,
+    filters,
+)
+
+from db_manager import db_init
+from handlers import (
+    cash_command,
+    handle_callback,
+    handle_menu_text,
+    help_command,
+    start,
+    usdt_command,
+)
+import redis_client
+import ui
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(name)s: - %(message)s',
-    filename='app.log',  # log to file
-    filemode='a'         # Append to file (or 'w' to overwrite)
+    filename='app.log',
+    filemode='a',
 )
 
-# Create a logger
 logger = logging.getLogger(__name__)
 
-# Load .env variables
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv('BOT_TOKEN')
 
 
-# Build and run the bot
-def main():
-    logging.info("Entry point...")
+async def on_startup(app) -> None:
+    await app.bot.set_my_commands(ui.bot_commands('en'))
+    await app.bot.set_my_commands(
+        ui.bot_commands('ru'),
+        language_code='ru',
+    )
+
+
+def build_application():
+    app = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .post_init(on_startup)
+        .build()
+    )
+    app.add_handler(CommandHandler('start', start))
+    app.add_handler(CommandHandler('help', help_command))
+    app.add_handler(CommandHandler('cash', cash_command))
+    app.add_handler(CommandHandler('usdt', usdt_command))
+    app.add_handler(CallbackQueryHandler(handle_callback))
+    app.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            handle_menu_text,
+        )
+    )
+    return app
+
+
+def main() -> None:
+    logging.info('Entry point...')
     db_init()
     redis_client.redis_client_init()
-    app = ApplicationBuilder().token(TOKEN).build()
-    app.add_handler(CallbackQueryHandler(handle_callback))
-    app.add_handler(CommandHandler("start", start))
-
-    logger.info("Bot is running....")
-
-    print("Bot is running...")
-    app.run_polling()  # ❗ This is NOT awaited — it handles its own loop
+    app = build_application()
+    logger.info('Bot is running....')
+    print('Bot is running...')
+    app.run_polling()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

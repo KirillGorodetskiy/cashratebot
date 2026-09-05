@@ -1,70 +1,88 @@
+import html
+
 import pandas as pd
 
-# Sample: format your DataFrame into a readable string
+
+def _esc(value: object) -> str:
+    return html.escape(str(value), quote=True)
+
+
 def format_dataframe(df: pd.DataFrame, lang: str) -> str:
-    rows = []
+    if df is None or df.empty:
+        return ''
+
+    rows: list[str] = []
+    is_ru = lang.lower() == 'ru'
 
     for _, row in df.iterrows():
-        time_str = row['time'].strftime("%H:%M")
-        commission_str = "Yes" if row['commissions'] else "No"
-        if lang.lower() == 'ru':
-            commission_str = "Да" if row['commissions'] else "Нет"
+        time_str = row['time'].strftime('%H:%M')
+        bank = _esc(row['bank'])
+        buy = _esc(row['buy_quote'])
+        sell = _esc(row['sell_quote'])
+        spread = _esc(row['spread'])
+        spread_pct = _esc(row['spread_percent'])
+        shown_time = _esc(time_str)
 
-        if lang.lower() == 'en':
-            row_text = (
-                f"🏦 {row['bank']}\n"
-                f"💵 Buy: {row['buy_quote']}\n"
-                f"💴 Sell: {row['sell_quote']}\n"
-                f"📊 Avg price: {row['avg_price']}\n"
-                f"📉 Spread, RUB: {row['spread']}\n"
-                f"📈 Spread, %: {row['spread_percent']}%\n"
-                f"📅 Time: {time_str}\n"
-                f"💸 Additional Commission: {commission_str}"
+        if is_ru:
+            commission = 'Да' if row['commissions'] else 'Нет'
+            rows.append(
+                f'<b>{bank}</b>\n'
+                f'Покупка <b>{buy}</b> · Продажа <b>{sell}</b>\n'
+                f'Спред {spread} ₽ ({spread_pct}%) · '
+                f'{shown_time} · Комиссия: {commission}'
             )
         else:
-            row_text = (
-                f"🏦 {row['bank']}\n"
-                f"💵 Покупка: {row['buy_quote']}\n"
-                f"💴 Продажа: {row['sell_quote']}\n"
-                f"📊 Средняя цена: {row['avg_price']}\n"
-                f"📉 Спрэд (₽): {row['spread']}\n"
-                f"📈 Спрэд (%): {row['spread_percent']}%\n"
-                f"📅 Время: {time_str}\n"
-                f"💸 Доп. комиссия: {commission_str}"
+            commission = 'Yes' if row['commissions'] else 'No'
+            rows.append(
+                f'<b>{bank}</b>\n'
+                f'Buy <b>{buy}</b> · Sell <b>{sell}</b>\n'
+                f'Spread {spread} RUB ({spread_pct}%) · '
+                f'{shown_time} · Commission: {commission}'
             )
 
-        rows.append(row_text)
+    return '\n\n'.join(rows)
 
-    return "\n\n".join(rows)  # Add double newline to separate rows
-    
 
-def format_stats_for_telegram(prepared_response: dict, lang: str = "en") -> str:
-    message_parts = []
+def format_stats_for_telegram(
+    prepared_response: dict,
+    lang: str = 'en',
+) -> str:
+    if not prepared_response:
+        return ''
+
+    is_ru = lang.lower() == 'ru'
+    parts: list[str] = []
 
     for currency, stats in prepared_response.items():
-        if lang.lower() == "ru":
-            part = (
-                f"💱 Валюта: {currency.upper()}\n"
-                f"📊 Средний курс покупки: {stats['avg_buys'] or '—'}\n"
-                f"📈 Средний курс продажи: {stats['avg_sells'] or '—'}\n"
-                f"⚖️ Средний курс: {stats['avg_price'] or '—'}\n"
-                f"📉 Средний спред: {stats['avg_spread_rub'] or '—'} руб.\n"
-                f"🔽 Мин. спред: {stats['min_spread_rub'] or '—'} руб.\n"
-                f"🔼 Макс. спред: {stats['max_spread_rub'] or '—'} руб.\n"
-                f"🧾 Кол-во предложений Купить: {stats['num_of_available_buys']} | Продать: {stats['num_of_available_sells']}\n"
+        name = _esc(str(currency).upper())
+        avg_buy = _esc(stats['avg_buys'] or '—')
+        avg_sell = _esc(stats['avg_sells'] or '—')
+        avg_price = _esc(stats['avg_price'] or '—')
+        avg_spread = _esc(stats['avg_spread_rub'] or '—')
+        min_spread = _esc(stats['min_spread_rub'] or '—')
+        max_spread = _esc(stats['max_spread_rub'] or '—')
+        buys = _esc(stats['num_of_available_buys'])
+        sells = _esc(stats['num_of_available_sells'])
+
+        if is_ru:
+            parts.append(
+                f'<b>{name}</b>\n'
+                f'Средняя покупка <b>{avg_buy}</b> · '
+                f'продажа <b>{avg_sell}</b>\n'
+                f'Средний курс {avg_price}\n'
+                f'Спред {avg_spread} ₽ '
+                f'(мин. {min_spread} · макс. {max_spread})\n'
+                f'Офферы: купить {buys} · продать {sells}'
             )
         else:
-            part = (
-                f"💱 Currency: {currency.upper()}\n"
-                f"📊 Avg Buy: {stats['avg_buys'] or '—'}\n"
-                f"📈 Avg Sell: {stats['avg_sells'] or '—'}\n"
-                f"⚖️ Avg Price: {stats['avg_price'] or '—'}\n"
-                f"📉 Avg Spread: {stats['avg_spread_rub'] or '—'} RUB\n"
-                f"🔽 Min Spread: {stats['min_spread_rub'] or '—'} RUB\n"
-                f"🔼 Max Spread: {stats['max_spread_rub'] or '—'} RUB\n"
-                f"🧾 Buy Offers: {stats['num_of_available_buys']} | Sell Offers: {stats['num_of_available_sells']}\n"
+            parts.append(
+                f'<b>{name}</b>\n'
+                f'Avg buy <b>{avg_buy}</b> · '
+                f'sell <b>{avg_sell}</b>\n'
+                f'Avg price {avg_price}\n'
+                f'Spread {avg_spread} RUB '
+                f'(min {min_spread} · max {max_spread})\n'
+                f'Offers: buy {buys} · sell {sells}'
             )
 
-        message_parts.append(part)
-
-    return "\n\n".join(message_parts)
+    return '\n\n'.join(parts)
