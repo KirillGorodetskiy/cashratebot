@@ -55,10 +55,12 @@ def make_context(user_data=None):
 
 
 class TestStartHandler(unittest.IsolatedAsyncioTestCase):
+    @patch('handlers.get_user_prefs', return_value={})
     @patch('handlers.save_new_user_data_in_db')
     async def test_start_sends_html_and_clears_reply_keyboard(
         self,
         mock_save,
+        _prefs,
     ) -> None:
         update = make_update_with_message()
         context = make_context()
@@ -153,7 +155,8 @@ class TestCallbackFlow(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(context.user_data['mode'], 'cash')
         self.assertEqual(context.user_data['step'], 'currencies')
 
-    async def test_home_resets_to_menu(self) -> None:
+    @patch('handlers.get_user_prefs', return_value={})
+    async def test_home_resets_to_menu(self, _prefs) -> None:
         update, query = make_update_with_query('nav:home')
         context = make_context({
             'lang': 'en',

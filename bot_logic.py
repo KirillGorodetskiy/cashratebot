@@ -7,6 +7,8 @@ import os
 from dotenv import load_dotenv
 from io import StringIO
 import logging
+from currencies import get_rbc_id
+from history_store import record_history_point
 from models import CurrencyStatistics, QuotesData, CurrencyCode, CityCode
 from typing import Union
 
@@ -30,6 +32,9 @@ def _get_data_frame(data: QuotesData) -> pd.DataFrame:
         'time': data.times,
         'commissions': data.commissions,
         'currency': data.currency,
+        'bank_id': data.bank_ids,
+        'metro': data.metros,
+        'phone': data.phones,
     })
 
 
@@ -49,8 +54,13 @@ def _merge_df(df_buy: pd.DataFrame, df_sell: pd.DataFrame) -> pd.DataFrame:
     # Sort merged df
     merged = merged.sort_values(by='buy_quote')
 
-    return merged[["currency", "bank", "buy_quote", "sell_quote", "spread",
-                  "spread_percent", "avg_price",  "time", "commissions"]]
+    cols = [
+        'currency', 'bank', 'buy_quote', 'sell_quote', 'spread',
+        'spread_percent', 'avg_price', 'time', 'commissions',
+        'bank_id', 'metro', 'phone',
+    ]
+    available = [name for name in cols if name in merged.columns]
+    return merged[available]
 
 
 def get_quotes_df_from_redis_cache(redis_json_name: str) -> pd.DataFrame | None:
@@ -98,7 +108,7 @@ def set_statistics_to_redis_cache(redis_json_name, df_merged):
 
 def get_currency_code(currency: Union[str, CurrencyCode]) -> int:
     if isinstance(currency, str):
-        return CurrencyCode[currency.upper()].value
+        return get_rbc_id(currency)
     return currency.value
 
 
@@ -172,6 +182,13 @@ def get_quotes_df(currency: str,
             set_quotes_to_redis_cache(redis_json_name, df_merged)
         except Exception as e:
             logger.error("Couldn`t save quotes from Redis: %s", e)
+
+    try:
+        best = df_merged['buy_quote'].min()
+        if pd.notna(best):
+            record_history_point(city, currency, float(best))
+    except Exception as exc:
+        logger.error('Could not record history: %s', exc)
 
     if return_all_banks:
         return df_merged

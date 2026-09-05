@@ -73,12 +73,16 @@ class TestDBInit(unittest.TestCase):
         #call the function
         db_init()
 
-        #check if cursor excecuted the CREATE TABLE statement
-        mock_cursor.execute.assert_called_once()
-        args, kwargs = mock_cursor.execute.call_args
-        self.assertIn("CREATE TABLE IF NOT EXISTS users", args[0])
-        
-        # Check commit and close were called
+        sqls = [
+            call.args[0]
+            for call in mock_cursor.execute.call_args_list
+        ]
+        self.assertTrue(
+            any('CREATE TABLE IF NOT EXISTS users' in item for item in sqls)
+        )
+        self.assertTrue(
+            any('CREATE TABLE IF NOT EXISTS alerts' in item for item in sqls)
+        )
         mock_conn.commit.assert_called_once()
         mock_conn.close.assert_called_once()
 

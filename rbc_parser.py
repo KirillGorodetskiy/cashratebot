@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag
 import requests
 from datetime import datetime, date
+import re
 import pytz
 import logging
 from models import QuotesData
@@ -15,17 +16,20 @@ def time_str_to_datetime(time_str: list[Tag]) -> list[datetime]:
      The day is always current date because it is a real-time parser,
      timezone always Moscow TZ because we have only 2 cities SPb and Moscow '''
 
+    return _times_from_strings([item.text.strip() for item in time_str])
+
+
+def _times_from_strings(values: list[str]) -> list[datetime]:
     today = date.today()
     moscow_tz = pytz.timezone('Europe/Moscow')
-
-    # Strip time_str from possible spaces
-    t = [x.text.strip() for x in time_str]
-    # Converting str into datetime objects
-    t_datetime = [datetime.strptime(f'{today} {x}', '%Y-%m-%d %H:%M') for x in t]
-    # Adding timezone
-    t_datetime = [moscow_tz.localize(x) for x in t_datetime]
-
-    return t_datetime
+    parsed: list[datetime] = []
+    for raw in values:
+        value = datetime.strptime(
+            f'{today} {raw.strip()}',
+            '%Y-%m-%d %H:%M',
+        )
+        parsed.append(moscow_tz.localize(value))
+    return parsed
 
 
 def _save_to_file(file_name: str, response: str) -> None:
@@ -39,27 +43,6 @@ def _read_from_file(file_name: str) -> str:
     return content
 
 
-def _prepare_parsed_data(banks_raw: list[Tag], quotes_raw: list[Tag],
-                         times_raw: list[Tag], currency: str) -> QuotesData:
-    datetime_objects_list = time_str_to_datetime(times_raw)
-    banks = [b.text.strip() for b in banks_raw]
-    quotes = [q.text.strip() for q in quotes_raw]
-    # On the wevsite bank offers that have additional comissions are marked
-    # with % sign. So, below we create list[bool] Yes/No Flag for commissions
-    commissions = [True if '%' in x else False for x in quotes]
-    # Now, when we`ve extracted info about comissinos we remove % sign
-    cleaned_quotes = [float(x.replace('%','')) for x in quotes]
-    # create currency list for casw when our df will have several currencies
-    currency_list = [currency.upper() for x in range(len(quotes))]
-    return QuotesData(
-        banks_names=banks,
-        quotes=cleaned_quotes,
-        times=datetime_objects_list,
-        commissions=commissions,
-        currency=currency_list,
-    )
-
-
 def _empty_quotes() -> QuotesData:
     return QuotesData(
         banks_names=[],
@@ -67,7 +50,34 @@ def _empty_quotes() -> QuotesData:
         times=[],
         commissions=[],
         currency=[],
+        bank_ids=[],
+        metros=[],
+        phones=[],
     )
+
+
+def _office_metro(office: Tag) -> str:
+    metro = office.find('div', class_='quote__office__one__metro')
+    if metro is None:
+        return ''
+    for span in metro.find_all('span'):
+        classes = span.get('class') or []
+        if 'quote__office__metro__distance' in classes:
+            continue
+        name = span.get_text(strip=True)
+        if name:
+            return name
+    return ''
+
+
+def _office_bank_id(office: Tag) -> str:
+    link = office.find('a', class_='quote__office__one__name')
+    if link is None or not link.get('href'):
+        return ''
+    match = re.search(r'/bank/(\d+)', link['href'])
+    if match is None:
+        return ''
+    return match.group(1)
 
 
 def parse_quotes(url: str, target_div_container: str,
@@ -85,33 +95,70 @@ def parse_quotes(url: str, target_div_container: str,
         logger.warning('No quotes table for %s', url)
         return _empty_quotes()
 
-    banks_raw = container.find_all(
-        'a',
-        class_='quote__office__one__name',
-    )
-    quotes_raw = container.find_all(
-        'div',
-        class_=(
-            'quote__office__cell quote__office__one__rate '
-            'quote__mode_list_view'
-        ),
-    )
-    times_raw = container.find_all(
-        'div',
-        class_='quote__office__cell quote__office__one__time',
-    )
-    if not banks_raw or not quotes_raw or not times_raw:
+    offices = container.find_all('div', class_='js-one-office')
+    if not offices:
         logger.warning('Empty quotes table for %s', url)
         return _empty_quotes()
 
     try:
-        return _prepare_parsed_data(
-            banks_raw,
-            quotes_raw,
-            times_raw,
-            currency,
-        )
+        return _parse_offices(offices, currency)
     except Exception as exc:
         logger.error('Could not parse quotes from %s: %s', url, exc)
         return _empty_quotes()
 
+
+def _parse_offices(offices: list[Tag], currency: str) -> QuotesData:
+    banks: list[str] = []
+    quotes: list[float] = []
+    times_raw: list[str] = []
+    commissions: list[bool] = []
+    bank_ids: list[str] = []
+    metros: list[str] = []
+    phones: list[str] = []
+
+    for office in offices:
+        name_el = office.find(class_='quote__office__one__name')
+        rate_el = office.find(
+            'div',
+            class_=lambda value: (
+                bool(value) and 'quote__office__one__rate' in value
+            ),
+        )
+        time_el = office.find(
+            'div',
+            class_=lambda value: (
+                bool(value) and 'quote__office__one__time' in value
+            ),
+        )
+        if name_el is None or rate_el is None or time_el is None:
+            continue
+        rate_text = rate_el.get_text(strip=True)
+        has_fee = '%' in rate_text
+        try:
+            quote = float(rate_text.replace('%', '').replace(',', '.'))
+        except ValueError:
+            continue
+        phone_el = office.find(class_='quote__office__one__phone')
+        banks.append(name_el.get_text(strip=True))
+        quotes.append(quote)
+        times_raw.append(time_el.get_text(strip=True))
+        commissions.append(has_fee)
+        bank_ids.append(_office_bank_id(office))
+        metros.append(_office_metro(office))
+        phones.append(
+            phone_el.get_text(strip=True) if phone_el else ''
+        )
+
+    if not banks:
+        return _empty_quotes()
+
+    return QuotesData(
+        banks_names=banks,
+        quotes=quotes,
+        times=_times_from_strings(times_raw),
+        commissions=commissions,
+        currency=[currency.upper() for _ in banks],
+        bank_ids=bank_ids,
+        metros=metros,
+        phones=phones,
+    )

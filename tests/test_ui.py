@@ -45,6 +45,9 @@ class TestInlineKeyboards(unittest.TestCase):
             for button in row
         ]
         self.assertIn('currency:USD', data)
+        self.assertIn('currency:CNY', data)
+        self.assertIn('currency:CHF', data)
+        self.assertIn('currency:TRY', data)
         self.assertIn('stats', data)
         self.assertIn('nav:back', data)
         self.assertIn('nav:home', data)
@@ -70,8 +73,38 @@ class TestCallbackValidation(unittest.TestCase):
     def test_allowed_city_and_currency(self) -> None:
         self.assertEqual(ui.parse_city('city:Moscow'), 'Moscow')
         self.assertEqual(ui.parse_currency('currency:EUR'), 'EUR')
+        self.assertEqual(ui.parse_currency('currency:CNY'), 'CNY')
         self.assertIsNone(ui.parse_city('city:Hack'))
         self.assertIsNone(ui.parse_currency('currency:XYZ'))
+
+    def test_home_can_show_last_and_favorite(self) -> None:
+        prefs = {
+            'last_city': 'Moscow',
+            'last_currency': 'USD',
+            'fav_city': 'SPB',
+            'fav_currency': 'EUR',
+        }
+        markup = ui.home_inline_keyboard('en', prefs)
+        data = [
+            button.callback_data
+            for row in markup.inline_keyboard
+            for button in row
+        ]
+        self.assertIn('last:open', data)
+        self.assertIn('fav:open', data)
+        self.assertIn('alerts:list', data)
+
+    def test_result_keyboard_has_actions(self) -> None:
+        markup = ui.result_inline_keyboard('en', 'quotes')
+        data = [
+            button.callback_data
+            for row in markup.inline_keyboard
+            for button in row
+        ]
+        self.assertIn('calc:open', data)
+        self.assertIn('alert:open', data)
+        self.assertIn('fav:set', data)
+        self.assertIn('where:open', data)
 
 
 if __name__ == '__main__':

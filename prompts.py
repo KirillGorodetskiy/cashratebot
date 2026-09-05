@@ -58,18 +58,70 @@ prompt_messages_error = {
 prompt_help = {
     'en': (
         '<b>How to use</b>\n'
-        '• <b>Cash</b> — choose a city, then a currency or city stats\n'
+        '• <b>Cash</b> — city, then currency or city stats\n'
         '• <b>USDT</b> — live USDT/RUB from several sources\n'
+        '• Last / Favorite reopen a pair in one tap\n'
+        '• Amount, Alert, and Offices on a rate card\n'
+        '• Share via inline: <code>@bot Moscow USD</code> '
+        'or <code>@bot usdt</code>\n'
         'Use Back, Home, and Refresh on the card.'
     ),
     'ru': (
         '<b>Как пользоваться</b>\n'
-        '• <b>Наличные</b> — выберите город, затем валюту или '
-        'статистику\n'
-        '• <b>USDT</b> — актуальный курс USDT/RUB из нескольких '
-        'источников\n'
+        '• <b>Наличные</b> — город, затем валюта или статистика\n'
+        '• <b>USDT</b> — актуальный курс USDT/RUB\n'
+        '• Последний / Избранное открывают пару одним нажатием\n'
+        '• Сумма, алерт и офисы на карточке курса\n'
+        '• Шаринг: <code>@bot Moscow USD</code> или '
+        '<code>@bot usdt</code>\n'
         'Используйте Назад, Меню и Обновить на карточке.'
     ),
+}
+
+prompt_calc = {
+    'en': (
+        '<b>Amount</b>\n'
+        'Choose a preset or send a number in the chat.'
+    ),
+    'ru': (
+        '<b>Сумма</b>\n'
+        'Выберите значение или отправьте число в чат.'
+    ),
+}
+
+prompt_alert = {
+    'en': '<b>Alert</b>\nNotify me when the rate is:',
+    'ru': '<b>Алерт</b>\nСообщить, когда курс будет:',
+}
+
+prompt_alert_th = {
+    'en': '<b>Alert</b>\nChoose a threshold around {rate:.2f}:',
+    'ru': '<b>Алерт</b>\nПорог около {rate:.2f}:',
+}
+
+prompt_alerts_empty = {
+    'en': '<b>Alerts</b>\nYou have no alerts yet.',
+    'ru': '<b>Алерты</b>\nПока нет алертов.',
+}
+
+prompt_alerts_list = {
+    'en': '<b>Alerts</b>\nTap an item to delete it.',
+    'ru': '<b>Алерты</b>\nНажмите, чтобы удалить.',
+}
+
+prompt_offices = {
+    'en': '<b>Offices</b>\nChoose a bank for address and phone:',
+    'ru': '<b>Офисы</b>\nВыберите банк для адреса и телефона:',
+}
+
+prompt_no_offices = {
+    'en': 'No office details are available for these quotes.',
+    'ru': 'Для этих курсов нет данных об офисах.',
+}
+
+prompt_inline_hint = {
+    'en': 'Type a city and currency, e.g. Moscow USD, or usdt',
+    'ru': 'Напишите город и валюту, например Moscow USD, или usdt',
 }
 
 cities_prompt = {

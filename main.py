@@ -7,16 +7,22 @@ from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
     CommandHandler,
+    InlineQueryHandler,
+    MessageHandler,
+    filters,
 )
 
 from db_manager import db_init
 from handlers import (
     cash_command,
     handle_callback,
+    handle_inline,
+    handle_text,
     help_command,
     start,
     usdt_command,
 )
+from jobs import check_alerts_job, snapshot_history_job
 import redis_client
 import ui
 
@@ -68,6 +74,26 @@ def build_application():
     app.add_handler(CommandHandler('cash', cash_command))
     app.add_handler(CommandHandler('usdt', usdt_command))
     app.add_handler(CallbackQueryHandler(handle_callback))
+    app.add_handler(InlineQueryHandler(handle_inline))
+    app.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text),
+    )
+    if app.job_queue is None:
+        logger.error(
+            'JobQueue is missing; install '
+            'python-telegram-bot[job-queue]',
+        )
+    else:
+        app.job_queue.run_repeating(
+            check_alerts_job,
+            interval=300,
+            first=45,
+        )
+        app.job_queue.run_repeating(
+            snapshot_history_job,
+            interval=3600,
+            first=120,
+        )
     return app
 
 

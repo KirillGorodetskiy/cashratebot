@@ -11,6 +11,9 @@ class QuotesData:
     times: list[datetime.datetime]
     commissions: list[bool]
     currency: list[str]
+    bank_ids: list[str]
+    metros: list[str]
+    phones: list[str]
 
 
 class CurrencyCode(Enum):
@@ -18,6 +21,9 @@ class CurrencyCode(Enum):
     USD = 3
     GBP = 321
     AED = 5
+    CNY = 423
+    CHF = 305
+    TRY = 307
 
 
 class CityCode(Enum):
