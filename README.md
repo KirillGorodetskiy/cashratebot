@@ -33,8 +33,8 @@ cd cashratebot
 
 BOT_TOKEN=<your_token>
 
-REDIS_HOST=<redis_host>
-REDIS_PORT=<redis_port>
+REDIS_HOST=redis
+REDIS_PORT=6379
 
 NUM_OF_RETURNED_BANKS=7 # how many bank`s quotes show to the user. Banks are sorted by best price.
 
