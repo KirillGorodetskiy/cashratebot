@@ -3,7 +3,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import ReplyKeyboardRemove, Update
 from telegram.constants import ParseMode
 from telegram.error import BadRequest
 from telegram.ext import ContextTypes
@@ -16,7 +16,6 @@ from prompts import (
     cities_prompt,
     prompt_choose_city_first,
     prompt_help,
-    prompt_menu_attached,
     prompt_messages_cities,
     prompt_messages_currencies,
     prompt_messages_error,
@@ -73,14 +72,34 @@ async def _render(
     )
 
 
-async def _show_home(context, lang: str, query=None, message=None) -> None:
+async def _show_home(
+    context,
+    lang: str,
+    query=None,
+    message=None,
+    clear_reply_keyboard: bool = False,
+) -> None:
     context.user_data['step'] = 'home'
     context.user_data.pop('mode', None)
     context.user_data.pop('city', None)
     context.user_data.pop('currency', None)
+    text = prompt_messages_greeting[lang]
+    markup = ui.home_inline_keyboard(lang)
+    if clear_reply_keyboard and message is not None:
+        sent = await message.reply_text(
+            text=text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        await sent.edit_text(
+            text=text,
+            parse_mode=ParseMode.HTML,
+            reply_markup=markup,
+        )
+        return
     await _render(
-        prompt_messages_greeting[lang],
-        ui.home_inline_keyboard(lang),
+        text,
+        markup,
         query=query,
         message=message,
     )
@@ -218,19 +237,16 @@ async def _show_usdt(context, lang: str, query=None, message=None) -> None:
     )
 
 
-async def _attach_reply_menu(message, lang: str) -> None:
-    await message.reply_text(
-        prompt_menu_attached[lang],
-        reply_markup=ui.reply_menu_keyboard(lang),
-    )
-
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     save_new_user_data_in_db(user)
     lang = _lang(update, context)
-    await _attach_reply_menu(update.message, lang)
-    await _show_home(context, lang, message=update.message)
+    await _show_home(
+        context,
+        lang,
+        message=update.message,
+        clear_reply_keyboard=True,
+    )
 
 
 async def help_command(
@@ -241,7 +257,7 @@ async def help_command(
     await update.message.reply_text(
         prompt_help[lang],
         parse_mode=ParseMode.HTML,
-        reply_markup=ui.reply_menu_keyboard(lang),
+        reply_markup=ReplyKeyboardRemove(),
     )
 
 
@@ -259,29 +275,6 @@ async def usdt_command(
 ) -> None:
     lang = _lang(update, context)
     await _show_usdt(context, lang, message=update.message)
-
-
-async def handle_menu_text(
-    update: Update,
-    context: ContextTypes.DEFAULT_TYPE,
-) -> None:
-    if update.message is None or update.message.text is None:
-        return
-    lang = _lang(update, context)
-    action = ui.menu_action(update.message.text)
-    if action == 'cash':
-        await _show_cities(context, lang, message=update.message)
-        return
-    if action == 'usdt':
-        await _show_usdt(context, lang, message=update.message)
-        return
-    if action == 'home':
-        await _show_home(context, lang, message=update.message)
-        return
-    await update.message.reply_text(
-        prompt_help[lang],
-        parse_mode=ParseMode.HTML,
-    )
 
 
 async def handle_callback(

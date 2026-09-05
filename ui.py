@@ -2,8 +2,6 @@ from telegram import (
     BotCommand,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    KeyboardButton,
-    ReplyKeyboardMarkup,
 )
 
 
@@ -74,16 +72,6 @@ def parse_mode(callback_data: str) -> str | None:
     if mode not in ALLOWED_MODES:
         return None
     return mode
-
-
-def menu_action(text: str) -> str | None:
-    if text in LABEL_CASH.values():
-        return 'cash'
-    if text in LABEL_USDT.values():
-        return 'usdt'
-    if text in LABEL_HOME.values():
-        return 'home'
-    return None
 
 
 def _nav_row(lang: str, refresh: bool = False) -> list:
@@ -161,20 +149,6 @@ def currencies_inline_keyboard(lang: str) -> InlineKeyboardMarkup:
 
 def result_inline_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([_nav_row(lang, refresh=True)])
-
-
-def reply_menu_keyboard(lang: str) -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        [
-            [
-                KeyboardButton(LABEL_CASH[lang]),
-                KeyboardButton(LABEL_USDT[lang]),
-            ],
-            [KeyboardButton(LABEL_HOME[lang])],
-        ],
-        resize_keyboard=True,
-        is_persistent=True,
-    )
 
 
 def bot_commands(lang: str) -> list[BotCommand]:

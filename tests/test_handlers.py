@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from telegram import ReplyKeyboardRemove
 from telegram.constants import ParseMode
 
 import handlers
@@ -15,7 +16,9 @@ def make_user(user_id: int = 7, language_code: str = 'en'):
 
 def make_message():
     message = MagicMock()
-    message.reply_text = AsyncMock()
+    sent = MagicMock()
+    sent.edit_text = AsyncMock()
+    message.reply_text = AsyncMock(return_value=sent)
     return message
 
 
@@ -52,7 +55,7 @@ def make_context(user_data=None):
 
 class TestStartHandler(unittest.IsolatedAsyncioTestCase):
     @patch('handlers.save_new_user_data_in_db')
-    async def test_start_sends_html_and_reply_menu(
+    async def test_start_sends_html_and_clears_reply_keyboard(
         self,
         mock_save,
     ) -> None:
@@ -65,7 +68,14 @@ class TestStartHandler(unittest.IsolatedAsyncioTestCase):
         kwargs = update.message.reply_text.await_args.kwargs
         self.assertEqual(kwargs['parse_mode'], ParseMode.HTML)
         self.assertIn('<blockquote>', kwargs['text'])
-        self.assertIn('reply_markup', kwargs)
+        self.assertIsInstance(
+            kwargs['reply_markup'],
+            ReplyKeyboardRemove,
+        )
+        sent = update.message.reply_text.return_value
+        sent.edit_text.assert_awaited()
+        edit_kwargs = sent.edit_text.await_args.kwargs
+        self.assertEqual(edit_kwargs['parse_mode'], ParseMode.HTML)
         self.assertEqual(context.user_data['step'], 'home')
         self.assertEqual(context.user_data['lang'], 'en')
 
@@ -153,19 +163,6 @@ class TestCallbackFlow(unittest.IsolatedAsyncioTestCase):
 
         await handlers.handle_callback(update, context)
 
-        self.assertEqual(context.user_data['step'], 'cities')
-
-
-class TestMenuText(unittest.IsolatedAsyncioTestCase):
-    async def test_reply_keyboard_cash_opens_cities(self) -> None:
-        update = make_update_with_message(text='💵 Cash')
-        context = make_context({'lang': 'en', 'step': 'home'})
-
-        await handlers.handle_menu_text(update, context)
-
-        update.message.reply_text.assert_awaited()
-        kwargs = update.message.reply_text.await_args.kwargs
-        self.assertEqual(kwargs['parse_mode'], ParseMode.HTML)
         self.assertEqual(context.user_data['step'], 'cities')
 
 

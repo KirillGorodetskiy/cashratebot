@@ -6,15 +6,12 @@ from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
     CommandHandler,
-    MessageHandler,
-    filters,
 )
 
 from db_manager import db_init
 from handlers import (
     cash_command,
     handle_callback,
-    handle_menu_text,
     help_command,
     start,
     usdt_command,
@@ -55,12 +52,6 @@ def build_application():
     app.add_handler(CommandHandler('cash', cash_command))
     app.add_handler(CommandHandler('usdt', usdt_command))
     app.add_handler(CallbackQueryHandler(handle_callback))
-    app.add_handler(
-        MessageHandler(
-            filters.TEXT & ~filters.COMMAND,
-            handle_menu_text,
-        )
-    )
     return app
 
 

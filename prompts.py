@@ -57,17 +57,12 @@ prompt_messages_error = {
     'ru': 'Не удалось загрузить курсы. Попробуйте ещё раз.',
 }
 
-prompt_menu_attached = {
-    'en': 'Quick menu is pinned below.',
-    'ru': 'Быстрое меню закреплено внизу.',
-}
-
 prompt_help = {
     'en': (
         '<b>How to use</b>\n'
         '• <b>Cash</b> — choose a city, then a currency or city stats\n'
         '• <b>USDT</b> — live USDT/RUB from several sources\n'
-        'Use Back, Home, Refresh, or the pinned menu.'
+        'Use Back, Home, and Refresh on the card.'
     ),
     'ru': (
         '<b>Как пользоваться</b>\n'
@@ -75,7 +70,7 @@ prompt_help = {
         'статистику\n'
         '• <b>USDT</b> — актуальный курс USDT/RUB из нескольких '
         'источников\n'
-        'Используйте Назад, Меню, Обновить или закреплённое меню.'
+        'Используйте Назад, Меню и Обновить на карточке.'
     ),
 }
 

@@ -1,6 +1,6 @@
 import unittest
 
-from telegram import InlineKeyboardButton, ReplyKeyboardMarkup
+from telegram import InlineKeyboardButton
 
 import ui
 
@@ -64,36 +64,6 @@ class TestInlineKeyboards(unittest.TestCase):
         markup = ui.home_inline_keyboard('ru')
         first = markup.inline_keyboard[0][0]
         self.assertIsInstance(first, InlineKeyboardButton)
-
-
-class TestReplyKeyboard(unittest.TestCase):
-    def test_persistent_menu(self) -> None:
-        markup = ui.reply_menu_keyboard('en')
-        self.assertIsInstance(markup, ReplyKeyboardMarkup)
-        self.assertTrue(markup.resize_keyboard)
-        labels = [
-            button.text
-            for row in markup.keyboard
-            for button in row
-        ]
-        self.assertIn(ui.LABEL_CASH['en'], labels)
-        self.assertIn(ui.LABEL_USDT['en'], labels)
-        self.assertIn(ui.LABEL_HOME['en'], labels)
-
-    def test_menu_label_detection(self) -> None:
-        self.assertEqual(
-            ui.menu_action(ui.LABEL_CASH['ru']),
-            'cash',
-        )
-        self.assertEqual(
-            ui.menu_action(ui.LABEL_USDT['en']),
-            'usdt',
-        )
-        self.assertEqual(
-            ui.menu_action(ui.LABEL_HOME['en']),
-            'home',
-        )
-        self.assertIsNone(ui.menu_action('random'))
 
 
 class TestCallbackValidation(unittest.TestCase):
