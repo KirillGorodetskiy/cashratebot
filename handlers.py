@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from telegram import ReplyKeyboardRemove, Update
 from telegram.constants import ParseMode
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TelegramError
 from telegram.ext import ContextTypes
 
 from bb_api import build_message, fetch_usdt_rub_rates
@@ -72,6 +72,20 @@ async def _render(
     )
 
 
+async def _clear_reply_keyboard(message) -> None:
+    notice = await message.reply_text(
+        text='\u2060',
+        reply_markup=ReplyKeyboardRemove(),
+    )
+    try:
+        await notice.delete()
+    except TelegramError as exc:
+        logger.error(
+            'Could not delete keyboard-clear notice: %s',
+            exc,
+        )
+
+
 async def _show_home(
     context,
     lang: str,
@@ -83,23 +97,11 @@ async def _show_home(
     context.user_data.pop('mode', None)
     context.user_data.pop('city', None)
     context.user_data.pop('currency', None)
-    text = prompt_messages_greeting[lang]
-    markup = ui.home_inline_keyboard(lang)
     if clear_reply_keyboard and message is not None:
-        sent = await message.reply_text(
-            text=text,
-            parse_mode=ParseMode.HTML,
-            reply_markup=ReplyKeyboardRemove(),
-        )
-        await sent.edit_text(
-            text=text,
-            parse_mode=ParseMode.HTML,
-            reply_markup=markup,
-        )
-        return
+        await _clear_reply_keyboard(message)
     await _render(
-        text,
-        markup,
+        prompt_messages_greeting[lang],
+        ui.home_inline_keyboard(lang),
         query=query,
         message=message,
     )

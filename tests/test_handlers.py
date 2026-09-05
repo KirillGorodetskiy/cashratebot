@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from telegram import ReplyKeyboardRemove
+from telegram import InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.constants import ParseMode
 
 import handlers
@@ -18,6 +18,7 @@ def make_message():
     message = MagicMock()
     sent = MagicMock()
     sent.edit_text = AsyncMock()
+    sent.delete = AsyncMock()
     message.reply_text = AsyncMock(return_value=sent)
     return message
 
@@ -65,17 +66,30 @@ class TestStartHandler(unittest.IsolatedAsyncioTestCase):
         await handlers.start(update, context)
 
         mock_save.assert_called_once()
-        kwargs = update.message.reply_text.await_args.kwargs
-        self.assertEqual(kwargs['parse_mode'], ParseMode.HTML)
-        self.assertIn('<blockquote>', kwargs['text'])
+        calls = update.message.reply_text.await_args_list
+        home_kwargs = None
+        removed_old_keyboard = False
+        for call in calls:
+            markup = call.kwargs['reply_markup']
+            if isinstance(markup, ReplyKeyboardRemove):
+                removed_old_keyboard = True
+                continue
+            home_kwargs = call.kwargs
+        self.assertTrue(removed_old_keyboard)
+        self.assertIsNotNone(home_kwargs)
+        self.assertEqual(home_kwargs['parse_mode'], ParseMode.HTML)
+        self.assertIn('<blockquote>', home_kwargs['text'])
         self.assertIsInstance(
-            kwargs['reply_markup'],
-            ReplyKeyboardRemove,
+            home_kwargs['reply_markup'],
+            InlineKeyboardMarkup,
         )
-        sent = update.message.reply_text.return_value
-        sent.edit_text.assert_awaited()
-        edit_kwargs = sent.edit_text.await_args.kwargs
-        self.assertEqual(edit_kwargs['parse_mode'], ParseMode.HTML)
+        data = [
+            button.callback_data
+            for row in home_kwargs['reply_markup'].inline_keyboard
+            for button in row
+        ]
+        self.assertIn('mode:cash', data)
+        self.assertIn('mode:usdt', data)
         self.assertEqual(context.user_data['step'], 'home')
         self.assertEqual(context.user_data['lang'], 'en')
 
