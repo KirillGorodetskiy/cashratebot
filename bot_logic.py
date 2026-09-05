@@ -103,9 +103,12 @@ def get_currency_code(currency: Union[str, CurrencyCode]) -> int:
 
 
 def get_city_code(city: Union[str, CityCode]) -> int:
-    if isinstance(city, str):
+    if isinstance(city, CityCode):
+        return city.value
+    try:
         return CityCode[city.upper()].value
-    return city.value
+    except KeyError as exc:
+        raise ValueError(f'Unknown city: {city}') from exc
 
 
 def get_quotes_df(currency: str,
@@ -127,25 +130,42 @@ def get_quotes_df(currency: str,
     if cached_quotes is not None:
         return cached_quotes if return_all_banks else cached_quotes.head(num_of_returned_banks)
 
-    currency_code = get_currency_code(currency)
-    city_code = get_city_code(city)
+    try:
+        currency_code = get_currency_code(currency)
+        city_code = get_city_code(city)
+    except (ValueError, KeyError) as exc:
+        logger.error('Skip quotes for %s %s: %s', city, currency, exc)
+        return pd.DataFrame()
 
-    df_buy = None
-    df_sell = None
-    df_merged = None
+    buy_url = base_url.format(
+        currency_code=currency_code,
+        city_code=city_code,
+        operation_code='buy',
+    )
+    sell_url = base_url.format(
+        currency_code=currency_code,
+        city_code=city_code,
+        operation_code='sell',
+    )
 
-    buy_url = base_url.format(currency_code=currency_code,
-                              city_code=city_code,
-                              operation_code='buy')
-
-    sell_url = base_url.format(currency_code=currency_code,
-                               city_code=city_code,
-                               operation_code='sell')
-
-    df_buy = _get_data_frame(parse_quotes(buy_url, div_container, currency))
-    df_sell = _get_data_frame(parse_quotes(sell_url, div_container, currency))
-
-    df_merged = _merge_df(df_buy, df_sell)
+    try:
+        df_buy = _get_data_frame(
+            parse_quotes(buy_url, div_container, currency)
+        )
+        df_sell = _get_data_frame(
+            parse_quotes(sell_url, div_container, currency)
+        )
+        if df_buy.empty and df_sell.empty:
+            return pd.DataFrame()
+        df_merged = _merge_df(df_buy, df_sell)
+    except Exception as exc:
+        logger.error(
+            'Could not parse quotes for %s %s: %s',
+            city,
+            currency,
+            exc,
+        )
+        return pd.DataFrame()
 
     if redis_client.REDIS_CLIENT is not None:
         try:
@@ -153,7 +173,9 @@ def get_quotes_df(currency: str,
         except Exception as e:
             logger.error("Couldn`t save quotes from Redis: %s", e)
 
-    return df_merged if return_all_banks else df_merged.head(num_of_returned_banks)
+    if return_all_banks:
+        return df_merged
+    return df_merged.head(num_of_returned_banks)
 
 
 def _get_several_currencies_in_city(city: str, 
@@ -161,8 +183,17 @@ def _get_several_currencies_in_city(city: str,
                                     ) -> pd.DataFrame:
     merged_df = pd.DataFrame()
     for currency in currencies_list:
-        df = get_quotes_df(currency, city, return_all_banks=True)
-        if df is not None and not df.empty:  # ✅ if the result is valid
+        try:
+            df = get_quotes_df(currency, city, return_all_banks=True)
+        except Exception as exc:
+            logger.error(
+                'Skip %s quotes in %s: %s',
+                currency,
+                city,
+                exc,
+            )
+            continue
+        if df is not None and not df.empty:
             merged_df = pd.concat([merged_df, df], ignore_index=True)
     return merged_df
 

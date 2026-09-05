@@ -4,8 +4,10 @@ from telegram import (
     InlineKeyboardMarkup,
 )
 
+from cities import CITIES, button_label, city_keys
 
-ALLOWED_CITIES = frozenset({'Moscow', 'SPB'})
+
+ALLOWED_CITIES = city_keys()
 ALLOWED_CURRENCIES = frozenset({'USD', 'EUR', 'GBP', 'AED'})
 ALLOWED_MODES = frozenset({'cash', 'usdt'})
 
@@ -18,12 +20,6 @@ LABEL_STATS = {
     'en': '📊 All currencies',
     'ru': '📊 Все валюты',
 }
-LABEL_MOSCOW = {'en': '🏙️ Moscow', 'ru': '🏙️ Москва'}
-LABEL_SPB = {
-    'en': '🏰 St. Petersburg',
-    'ru': '🏰 Санкт-Петербург',
-}
-
 TOAST_INVALID = {
     'en': 'Invalid choice',
     'ru': 'Некорректный выбор',
@@ -112,19 +108,22 @@ def home_inline_keyboard(lang: str) -> InlineKeyboardMarkup:
 
 
 def cities_inline_keyboard(lang: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([
-        [
+    rows: list[list[InlineKeyboardButton]] = []
+    current: list[InlineKeyboardButton] = []
+    for city in CITIES:
+        current.append(
             InlineKeyboardButton(
-                LABEL_MOSCOW[lang],
-                callback_data='city:Moscow',
-            ),
-            InlineKeyboardButton(
-                LABEL_SPB[lang],
-                callback_data='city:SPB',
-            ),
-        ],
-        _nav_row(lang),
-    ])
+                button_label(city, lang),
+                callback_data=f'city:{city.key}',
+            )
+        )
+        if len(current) == 2:
+            rows.append(current)
+            current = []
+    if current:
+        rows.append(current)
+    rows.append(_nav_row(lang))
+    return InlineKeyboardMarkup(rows)
 
 
 def currencies_inline_keyboard(lang: str) -> InlineKeyboardMarkup:

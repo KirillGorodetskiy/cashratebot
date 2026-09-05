@@ -23,6 +23,12 @@ class CurrencyCode(Enum):
 class CityCode(Enum):
     MOSCOW = 1
     SPB = 2
+    ROSTOV = 3
+    KALININGRAD = 4
+    KRASNODAR = 5
+    BASHKORTOSTAN = 6
+    TATARSTAN = 7
+    VOLGOGRAD = 8
 
 
 class CurrencyStatistics(TypedDict):

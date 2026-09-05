@@ -77,4 +77,28 @@ prompt_help = {
 cities_prompt = {
     'MOSCOW': {'en': 'Moscow', 'ru': 'Москва'},
     'SPB': {'en': 'St. Petersburg', 'ru': 'Санкт-Петербург'},
+    'ROSTOV': {
+        'en': 'Rostov Region',
+        'ru': 'Ростовская область',
+    },
+    'KALININGRAD': {
+        'en': 'Kaliningrad',
+        'ru': 'Калининград',
+    },
+    'KRASNODAR': {
+        'en': 'Krasnodar Region',
+        'ru': 'Краснодарский край',
+    },
+    'BASHKORTOSTAN': {
+        'en': 'Bashkortostan',
+        'ru': 'Республика Башкортостан',
+    },
+    'TATARSTAN': {
+        'en': 'Tatarstan',
+        'ru': 'Республика Татарстан',
+    },
+    'VOLGOGRAD': {
+        'en': 'Volgograd Region',
+        'ru': 'Волгоградская область',
+    },
 }

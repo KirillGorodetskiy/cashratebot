@@ -60,25 +60,58 @@ def _prepare_parsed_data(banks_raw: list[Tag], quotes_raw: list[Tag],
     )
 
 
+def _empty_quotes() -> QuotesData:
+    return QuotesData(
+        banks_names=[],
+        quotes=[],
+        times=[],
+        commissions=[],
+        currency=[],
+    )
+
+
 def parse_quotes(url: str, target_div_container: str,
                  currency: str) -> QuotesData:
-
-    content: requests.Response = requests.get(url)
+    try:
+        content = requests.get(url, timeout=15)
+        content.raise_for_status()
+    except requests.RequestException as exc:
+        logger.error('Could not fetch quotes from %s: %s', url, exc)
+        return _empty_quotes()
 
     data: BeautifulSoup = BeautifulSoup(content.text, 'lxml')
+    container = data.find('div', class_=target_div_container)
+    if container is None:
+        logger.warning('No quotes table for %s', url)
+        return _empty_quotes()
 
-    # _save_to_file('page1.html', content.text)
+    banks_raw = container.find_all(
+        'a',
+        class_='quote__office__one__name',
+    )
+    quotes_raw = container.find_all(
+        'div',
+        class_=(
+            'quote__office__cell quote__office__one__rate '
+            'quote__mode_list_view'
+        ),
+    )
+    times_raw = container.find_all(
+        'div',
+        class_='quote__office__cell quote__office__one__time',
+    )
+    if not banks_raw or not quotes_raw or not times_raw:
+        logger.warning('Empty quotes table for %s', url)
+        return _empty_quotes()
 
-    # content_text = _read_from_file('page.html')
-    # data = BeautifulSoup(content_text,'lxml')
-
-    container: Tag = data.find('div', class_=target_div_container)  # tarrget_div_container contains our target table with quotes
-
-    banks_raw: list[Tag] = container.find_all('a', class_='quote__office__one__name')
-    quotes_raw: list[Tag] = container.find_all('div', class_='quote__office__cell quote__office__one__rate quote__mode_list_view')
-    times_raw: list[Tag] = container.find_all('div', class_='quote__office__cell quote__office__one__time')
-
-    prepared_quotes_data_object = _prepare_parsed_data(banks_raw, quotes_raw, times_raw, currency)
-
-    return prepared_quotes_data_object
+    try:
+        return _prepare_parsed_data(
+            banks_raw,
+            quotes_raw,
+            times_raw,
+            currency,
+        )
+    except Exception as exc:
+        logger.error('Could not parse quotes from %s: %s', url, exc)
+        return _empty_quotes()
 
