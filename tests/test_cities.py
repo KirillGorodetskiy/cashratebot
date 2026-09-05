@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pandas as pd
 import requests
 
-from cities import CITIES, city_keys
+from cities import CITIES, button_label, city_keys
 from models import CityCode
 from bot_logic import get_city_code, get_quotes_df
 from rbc_parser import parse_quotes
@@ -61,6 +61,14 @@ class TestCitiesKeyboard(unittest.TestCase):
     def test_parse_city_accepts_catalog_and_rejects_unknown(self) -> None:
         self.assertEqual(ui.parse_city('city:Tatarstan'), 'Tatarstan')
         self.assertIsNone(ui.parse_city('city:Hack'))
+
+    def test_city_buttons_use_flags_and_short_names(self) -> None:
+        moscow = next(city for city in CITIES if city.key == 'Moscow')
+        spb = next(city for city in CITIES if city.key == 'SPB')
+        self.assertTrue(button_label(moscow, 'en').startswith('🏙'))
+        self.assertIn('SPb', button_label(spb, 'en'))
+        self.assertEqual(CITIES[0].key, 'Moscow')
+        self.assertEqual(CITIES[1].key, 'SPB')
 
 
 class TestParseQuotesSkip(unittest.TestCase):

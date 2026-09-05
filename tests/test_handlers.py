@@ -78,7 +78,7 @@ class TestStartHandler(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(removed_old_keyboard)
         self.assertIsNotNone(home_kwargs)
         self.assertEqual(home_kwargs['parse_mode'], ParseMode.HTML)
-        self.assertIn('<blockquote>', home_kwargs['text'])
+        self.assertIn('<blockquote expandable>', home_kwargs['text'])
         self.assertIsInstance(
             home_kwargs['reply_markup'],
             InlineKeyboardMarkup,

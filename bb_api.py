@@ -1,7 +1,10 @@
 import html
 import re
 import statistics
+
 import requests
+
+from data_formatter import card_header
 
 MIN_SOURCES = 2
 MIN_RATE = 50
@@ -127,27 +130,32 @@ def build_message(result, lang='ru'):
             else '❌ Not enough data to calculate the exchange rate.'
         )
 
-    lines = ['<b>USDT / RUB</b>']
+    header = card_header(['USDT / RUB'], lang)
+    table_lines = []
     for name, rate in result['rates'].items():
-        source = html.escape(str(name), quote=True)
-        lines.append(f'• <b>{source}</b>: {rate:.2f} RUB')
+        table_lines.append(f'{name:<14} {rate:6.2f}')
+    table_lines.append('')
+    table_lines.append(f"{'Average':<14} {result['average']:6.2f}")
+    table = html.escape('\n'.join(table_lines), quote=True)
 
     if lang == 'ru':
-        lines += [
-            f"<b>Средний:</b> {result['average']:.2f} RUB",
-            f"Медиана: {result['median']:.2f} RUB",
-            f"Диапазон: {result['min']:.2f}–{result['max']:.2f} RUB",
-            f"Источники: {result['count']}/{result['total']}",
-        ]
+        extra = (
+            f"Медиана {result['median']:.2f} · "
+            f"диапазон {result['min']:.2f}–{result['max']:.2f} · "
+            f"источники {result['count']}/{result['total']}"
+        )
     else:
-        lines += [
-            f"<b>Average:</b> {result['average']:.2f} RUB",
-            f"Median: {result['median']:.2f} RUB",
-            f"Range: {result['min']:.2f}–{result['max']:.2f} RUB",
-            f"Sources: {result['count']}/{result['total']}",
-        ]
+        extra = (
+            f"Median {result['median']:.2f} · "
+            f"range {result['min']:.2f}–{result['max']:.2f} · "
+            f"sources {result['count']}/{result['total']}"
+        )
 
-    return '\n'.join(lines)
+    return (
+        f'{header}'
+        f'<pre>{table}</pre>\n'
+        f'<blockquote expandable>{extra}</blockquote>'
+    )
 
 if __name__ == "__main__":
     result = fetch_usdt_rub_rates()

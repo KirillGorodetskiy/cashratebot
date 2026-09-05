@@ -2,6 +2,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
+from telegram.error import TelegramError
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -38,6 +39,21 @@ async def on_startup(app) -> None:
         ui.bot_commands('ru'),
         language_code='ru',
     )
+    try:
+        await app.bot.set_my_short_description(
+            ui.BOT_SHORT_DESCRIPTION['en'],
+        )
+        await app.bot.set_my_short_description(
+            ui.BOT_SHORT_DESCRIPTION['ru'],
+            language_code='ru',
+        )
+        await app.bot.set_my_description(ui.BOT_DESCRIPTION['en'])
+        await app.bot.set_my_description(
+            ui.BOT_DESCRIPTION['ru'],
+            language_code='ru',
+        )
+    except TelegramError as exc:
+        logger.error('Could not update bot profile texts: %s', exc)
 
 
 def build_application():

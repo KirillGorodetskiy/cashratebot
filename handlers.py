@@ -10,7 +10,13 @@ from telegram.ext import ContextTypes
 
 from bb_api import build_message, fetch_usdt_rub_rates
 from bot_logic import get_quotes_df, get_statistics
-from data_formatter import format_dataframe, format_stats_for_telegram
+from data_formatter import (
+    CRUMB_CASH,
+    CRUMB_STATS,
+    card_header,
+    format_dataframe,
+    format_stats_for_telegram,
+)
 from db_manager import increment_field_db, save_new_user_data_in_db
 from prompts import (
     cities_prompt,
@@ -21,7 +27,6 @@ from prompts import (
     prompt_messages_error,
     prompt_messages_greeting,
     prompt_messages_no_data,
-    prompt_messages_show_data,
 )
 import ui
 
@@ -167,9 +172,17 @@ async def _show_quotes(
         if body == '':
             text = prompt_messages_no_data[lang]
         else:
-            header = prompt_messages_show_data[lang].format(
-                currency=html.escape(currency.upper(), quote=True),
-                city=html.escape(_city_label(city, lang), quote=True),
+            updated_at = None
+            if quotes_df is not None and not quotes_df.empty:
+                updated_at = quotes_df['time'].max()
+            header = card_header(
+                [
+                    CRUMB_CASH[lang],
+                    _city_label(city, lang),
+                    currency.upper(),
+                ],
+                lang,
+                updated_at,
             )
             text = header + body
 
@@ -202,9 +215,18 @@ async def _show_stats(
     context.user_data['city'] = city
     try:
         stats = get_statistics(city, CURRENCIES_LIST)
-        text = format_stats_for_telegram(stats, lang)
-        if text == '':
+        body = format_stats_for_telegram(stats, lang)
+        if body == '':
             text = prompt_messages_no_data[lang]
+        else:
+            text = card_header(
+                [
+                    CRUMB_CASH[lang],
+                    _city_label(city, lang),
+                    CRUMB_STATS[lang],
+                ],
+                lang,
+            ) + body
     except Exception as exc:
         logger.error('Could not load stats: %s', exc)
         text = prompt_messages_error[lang]

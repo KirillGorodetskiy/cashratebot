@@ -1,35 +1,33 @@
 prompt_messages_greeting = {
     'en': (
         '<b>Cash and USDT rates</b>\n'
-        '<blockquote>Data from cash.rbc.ru. Bank offers are not '
-        'always final — confirm with the bank before visiting.'
-        '</blockquote>\n'
+        '<blockquote expandable>Data from cash.rbc.ru. Bank offers '
+        'are not always final — confirm with the bank before '
+        'visiting.</blockquote>\n'
         'Choose cash or USDT:'
     ),
     'ru': (
         '<b>Курсы наличных и USDT</b>\n'
-        '<blockquote>Данные с cash.rbc.ru. Предложения банков не '
-        'всегда окончательные — уточните условия в банке перед '
-        'визитом.</blockquote>\n'
+        '<blockquote expandable>Данные с cash.rbc.ru. Предложения '
+        'банков не всегда окончательные — уточните условия в '
+        'банке перед визитом.</blockquote>\n'
         'Выберите наличные или USDT:'
     ),
 }
 
 prompt_messages_cities = {
-    'en': '<b>Choose your city</b>',
-    'ru': '<b>Выберите город</b>',
+    'en': '<b>Cash</b>\nChoose your city:',
+    'ru': '<b>Наличные</b>\nВыберите город:',
 }
 
 prompt_messages_currencies = {
     'en': (
-        '<b>{city}</b>\n'
-        'Choose a currency for the top-{num_of_banks} bank quotes, '
-        'or open city stats:'
+        '<b>Cash · {city}</b>\n'
+        'Top-{num_of_banks} quotes or city stats:'
     ),
     'ru': (
-        '<b>{city}</b>\n'
-        'Выберите валюту для топ-{num_of_banks} предложений банков '
-        'или откройте статистику по городу:'
+        '<b>Наличные · {city}</b>\n'
+        'Топ-{num_of_banks} курсов или статистика:'
     ),
 }
 

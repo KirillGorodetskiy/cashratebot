@@ -19,7 +19,9 @@ class TestBuildMessageHtml(unittest.TestCase):
             'total': 6,
         }
         text = build_message(result, lang='en')
-        self.assertIn('<b>', text)
+        self.assertIn('<b>USDT / RUB</b>', text)
+        self.assertIn('<pre>', text)
+        self.assertIn('Updated', text)
         self.assertIn('Coin&lt;base&gt;', text)
         self.assertNotIn('<base>', text)
         self.assertIn('92.50', text)

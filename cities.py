@@ -9,17 +9,19 @@ class City:
     ru: str
     button_en: str
     button_ru: str
+    emoji: str
 
 
 CITIES: tuple[City, ...] = (
-    City('Moscow', 1, 'Moscow', 'Москва', 'Moscow', 'Москва'),
+    City('Moscow', 1, 'Moscow', 'Москва', 'Moscow', 'Москва', '🏙'),
     City(
         'SPB',
         2,
         'St. Petersburg',
         'Санкт-Петербург',
-        'St. Petersburg',
-        'Санкт-Петербург',
+        'SPb',
+        'СПб',
+        '🌉',
     ),
     City(
         'Rostov',
@@ -28,6 +30,7 @@ CITIES: tuple[City, ...] = (
         'Ростовская область',
         'Rostov',
         'Ростов',
+        '🌾',
     ),
     City(
         'Kaliningrad',
@@ -36,6 +39,7 @@ CITIES: tuple[City, ...] = (
         'Калининград',
         'Kaliningrad',
         'Калининград',
+        '⚓',
     ),
     City(
         'Krasnodar',
@@ -44,6 +48,7 @@ CITIES: tuple[City, ...] = (
         'Краснодарский край',
         'Krasnodar',
         'Краснодар',
+        '☀️',
     ),
     City(
         'Bashkortostan',
@@ -52,6 +57,7 @@ CITIES: tuple[City, ...] = (
         'Республика Башкортостан',
         'Bashkortostan',
         'Башкортостан',
+        '🌿',
     ),
     City(
         'Tatarstan',
@@ -60,6 +66,7 @@ CITIES: tuple[City, ...] = (
         'Республика Татарстан',
         'Tatarstan',
         'Татарстан',
+        '🌙',
     ),
     City(
         'Volgograd',
@@ -68,6 +75,7 @@ CITIES: tuple[City, ...] = (
         'Волгоградская область',
         'Volgograd',
         'Волгоград',
+        '🏛',
     ),
 )
 
@@ -91,4 +99,5 @@ def city_label(key: str, lang: str) -> str:
 
 
 def button_label(city: City, lang: str) -> str:
-    return city.button_ru if lang == 'ru' else city.button_en
+    name = city.button_ru if lang == 'ru' else city.button_en
+    return f'{city.emoji} {name}'

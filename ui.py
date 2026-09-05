@@ -150,6 +150,27 @@ def result_inline_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([_nav_row(lang, refresh=True)])
 
 
+BOT_SHORT_DESCRIPTION = {
+    'en': 'Cash FX and USDT/RUB rates in Russian cities',
+    'ru': 'Наличные курсы и USDT/RUB в городах России',
+}
+
+BOT_DESCRIPTION = {
+    'en': (
+        'Live cash exchange rates from cash.rbc.ru for Moscow, '
+        'St. Petersburg and other regions, plus USDT/RUB from '
+        'several public sources. Offers are not always final — '
+        'confirm with the bank before visiting.'
+    ),
+    'ru': (
+        'Актуальные наличные курсы с cash.rbc.ru для Москвы, '
+        'Санкт-Петербурга и других регионов, плюс USDT/RUB из '
+        'нескольких открытых источников. Предложения не всегда '
+        'окончательные — уточните условия в банке.'
+    ),
+}
+
+
 def bot_commands(lang: str) -> list[BotCommand]:
     if lang == 'ru':
         return [
